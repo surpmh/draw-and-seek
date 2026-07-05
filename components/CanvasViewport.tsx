@@ -22,7 +22,7 @@ export function CanvasViewport({
   /** 탑 네비게이션에 가려지지 않도록 뷰포트 위쪽을 밀어주는 값 */
   topInset?: number;
 }) {
-  const { elRef, view, size, panning, animating, onPointerDown, onDoubleClick } = viewport;
+  const { elRef, transformRef, view, size, panning, animating, onPointerDown, onDoubleClick } = viewport;
 
   return (
     <div
@@ -42,6 +42,7 @@ export function CanvasViewport({
       }}
     >
       <div
+        ref={transformRef /* 제스처 중엔 useViewport가 여기에 transform을 직접 쓴다 (React 우회) */}
         style={{
           position: "absolute",
           left: 0,
@@ -56,7 +57,7 @@ export function CanvasViewport({
           overflow: "hidden",
         }}
       >
-        <TileLayer view={view} size={size} meta={meta} />
+        <TileLayer view={view} size={size} meta={meta} gesturing={panning} />
         {children /* M2: 배치 미리보기 오버레이가 여기에 들어감 */}
       </div>
     </div>

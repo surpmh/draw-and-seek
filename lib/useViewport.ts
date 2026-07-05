@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CanvasMeta, View } from "./tiles";
 
 const S_MAX = 3;
@@ -8,6 +8,9 @@ const S_MAX = 3;
  * 수동 줌아웃은 이보다 더 내려가 전체 조망(cover)까지 가능 */
 const S_DEFAULT_MIN = 0.35;
 const ANIM_MS = 540;
+/** 제스처 중 상태(setState) 커밋 주기 — transform은 매 프레임 DOM에 직접 쓰고,
+ * 리렌더가 필요한 타일 갱신만 이 간격으로 묶는다 (모바일에서 매 프레임 리렌더는 fps를 깎는다) */
+const TILE_COMMIT_MS = 150;
 
 export interface ViewportSize {
   w: number;
@@ -47,6 +50,12 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
   /** 고빈도 입력(팬·휠)을 프레임당 1회 상태 커밋으로 합치기 위한 버퍼 */
   const pendingView = useRef<View | null>(null);
   const rafId = useRef<number | null>(null);
+  /** 변환 대상 엘리먼트 — 제스처 중엔 React를 우회해 여기에 transform을 직접 쓴다 */
+  const transformRef = useRef<HTMLDivElement | null>(null);
+  /** DOM에 마지막으로 반영된 뷰 — 상태 커밋과 렌더 사이의 공백에서 latestView의 기준 */
+  const lastApplied = useRef<View | null>(null);
+  const lastStateCommit = useRef(0);
+  const flushT = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const minScale = useCallback(() => {
     const m = metaRef.current;
@@ -75,27 +84,63 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
     };
   }, []);
 
-  /** 다음 rAF 프레임에 한 번만 setState — 포인터무브/휠이 초당 수백 회 와도 렌더는 프레임당 1회 */
-  const commitView = useCallback((v: View) => {
-    pendingView.current = v;
-    if (rafId.current == null) {
-      rafId.current = requestAnimationFrame(() => {
-        rafId.current = null;
-        if (pendingView.current) {
-          setViewState(pendingView.current);
-          pendingView.current = null;
-        }
-      });
+  const applyTransform = useCallback((v: View) => {
+    lastApplied.current = v;
+    const el = transformRef.current;
+    if (el) el.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.s})`;
+  }, []);
+
+  /** pending으로 남아 있는 뷰를 상태로 커밋 — 제스처 종료·트레일링 시점에 호출 */
+  const flushView = useCallback(() => {
+    if (flushT.current) {
+      clearTimeout(flushT.current);
+      flushT.current = null;
+    }
+    const pv = pendingView.current;
+    if (pv) {
+      pendingView.current = null;
+      lastStateCommit.current = performance.now();
+      setViewState(pv);
     }
   }, []);
 
-  /** 누적 계산의 기준 뷰 — 아직 커밋 안 된 pending이 있으면 그것부터 */
-  const latestView = useCallback(() => pendingView.current ?? viewRef.current, []);
+  /** 고빈도 입력(팬·핀치·휠): transform은 매 rAF 프레임 DOM에 직접 반영하고(60fps),
+   * 타일 갱신용 상태 커밋은 TILE_COMMIT_MS 간격으로만 — 트리 리렌더가 제스처를 못 따라오는 문제 방지 */
+  const commitView = useCallback(
+    (v: View) => {
+      pendingView.current = v;
+      if (rafId.current == null) {
+        rafId.current = requestAnimationFrame(() => {
+          rafId.current = null;
+          const pv = pendingView.current;
+          if (!pv) return;
+          applyTransform(pv);
+          if (performance.now() - lastStateCommit.current >= TILE_COMMIT_MS) {
+            flushView();
+          } else {
+            // 휠처럼 end 이벤트가 없는 입력도 멈추면 최종 뷰가 상태에 반영되도록
+            if (flushT.current) clearTimeout(flushT.current);
+            flushT.current = setTimeout(flushView, TILE_COMMIT_MS);
+          }
+        });
+      }
+    },
+    [applyTransform, flushView],
+  );
+
+  /** 누적 계산의 기준 뷰 — 아직 커밋 안 된 pending → DOM 반영값 → 상태 순 */
+  const latestView = useCallback(() => pendingView.current ?? lastApplied.current ?? viewRef.current, []);
 
   const setView = useCallback(
     (x: number, y: number, s: number, anim: boolean) => {
       pendingView.current = null; // 저빈도 경로(버튼·fit)는 즉시 커밋이 우선
-      setViewState(clampXY({ x, y, s }));
+      if (flushT.current) {
+        clearTimeout(flushT.current);
+        flushT.current = null;
+      }
+      const nv = clampXY({ x, y, s });
+      lastApplied.current = nv;
+      setViewState(nv);
       if (anim) {
         setAnimating(true);
         if (animT.current) clearTimeout(animT.current);
@@ -178,6 +223,13 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
     };
   }, []);
 
+  // 상태 커밋 렌더가 그 사이 DOM에 직접 쓴 더 새로운 transform을 덮어쓸 수 있어,
+  // 커밋 직후 최신 제스처 뷰를 재적용한다 (제스처 중이 아니면 값이 같아 no-op)
+  useLayoutEffect(() => {
+    const pv = pendingView.current ?? lastApplied.current;
+    if (pv && (pv.x !== view.x || pv.y !== view.y || pv.s !== view.s)) applyTransform(pv);
+  }, [view, applyTransform]);
+
   // ---- 팬 + 핀치 (pointer) ----
   const panMove = useCallback(
     (e: PointerEvent) => {
@@ -245,12 +297,13 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
       }
       pan.current = null;
       pointers.current.clear();
+      flushView(); // 제스처 종료 — 최종 뷰를 상태로 커밋해 타일을 현재 화면에 맞춘다
       window.removeEventListener("pointermove", panMove);
       window.removeEventListener("pointerup", panEnd);
       window.removeEventListener("pointercancel", panEnd);
       setPanning(false);
     },
-    [panMove],
+    [panMove, flushView],
   );
 
   const onPointerDown = useCallback(
@@ -323,11 +376,13 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
       window.removeEventListener("pointercancel", panEnd);
       if (animT.current) clearTimeout(animT.current);
       if (rafId.current != null) cancelAnimationFrame(rafId.current);
+      if (flushT.current) clearTimeout(flushT.current);
     };
   }, [panMove, panEnd]);
 
   return {
     elRef,
+    transformRef,
     view,
     size,
     panning,

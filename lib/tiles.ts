@@ -44,9 +44,14 @@ export function tileCounts(meta: Pick<CanvasMeta, "width" | "height" | "tileSize
   };
 }
 
-/** 현재 뷰포트에 보이는 타일 목록 (월드 배치 좌표 포함) */
-export function visibleTiles(view: View, vw: number, vh: number, meta: CanvasMeta): TileSpec[] {
-  const z = levelForScale(view.s, meta.maxZoom);
+/** 현재 뷰포트에 보이는 타일 목록 (월드 배치 좌표 포함). z를 넘기면 해당 레벨로 고정 */
+export function visibleTiles(
+  view: View,
+  vw: number,
+  vh: number,
+  meta: CanvasMeta,
+  z = levelForScale(view.s, meta.maxZoom),
+): TileSpec[] {
   const f = worldPerLevelPx(z, meta.maxZoom);
   const span = meta.tileSize * f; // 타일 하나의 월드 크기
   const { tilesX, tilesY } = tileCounts(meta, f);
