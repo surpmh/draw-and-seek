@@ -5,18 +5,37 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
-const title = "Draw & Seek";
-const description = "그림을 그려 거대한 캔버스에 숨기고, 숨겨진 그림을 찾아보세요";
+const title = "숨은그림찾기 | Draw & Seek";
+const description =
+  "온라인 숨은그림찾기 게임 Draw & Seek. 거대한 캔버스에 그림을 그려 숨기고, 다른 사람들이 숨긴 그림을 찾아보세요. 무료로 즐기는 웹 기반 그림 숨바꼭질.";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://drawandseek.com"),
   title,
   description,
+  keywords: [
+    "숨은그림찾기",
+    "숨은 그림 찾기",
+    "그림찾기 게임",
+    "그림 숨바꼭질",
+    "그림 그리기 게임",
+    "함께 그림 그리기",
+    "온라인 그림판 게임",
+    "그림 그려서 숨기기",
+    "온라인 그림 게임",
+    "웹 게임",
+    "무료 온라인 게임",
+    "협동 게임",
+    "캔버스 게임",
+    "Draw and Seek",
+    "hidden picture game",
+    "drawing game",
+  ],
   openGraph: {
     title,
     description,
     url: "https://drawandseek.com",
-    siteName: title,
+    siteName: "Draw & Seek",
     locale: "ko_KR",
     type: "website",
   },

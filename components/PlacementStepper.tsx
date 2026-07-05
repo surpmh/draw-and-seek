@@ -73,9 +73,9 @@ export function PlacementStepper({
       <label style={{ display: "block", fontSize: 11, color: "var(--text2)", marginBottom: 5 }}>{t.nickname}</label>
       <input
         value={nickname}
-        onChange={(e) => onNickname(e.target.value.slice(0, 20))}
+        onChange={(e) => onNickname(e.target.value.slice(0, 7))}
         placeholder={t.nicknamePlaceholder}
-        maxLength={20}
+        maxLength={7}
         style={{
           width: "100%",
           height: 34,

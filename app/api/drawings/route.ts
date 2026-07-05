@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     return new NextResponse("잘못된 요청 본문", { status: 400 });
   }
 
-  const nickname = (body.nickname ?? "").trim().slice(0, 20);
+  const nickname = (body.nickname ?? "").trim().slice(0, 7);
   if (!nickname) return new NextResponse("닉네임을 입력해주세요", { status: 400 });
 
   const dataUrl = body.imageDataUrl ?? "";
