@@ -31,8 +31,11 @@ export function middleware(req: NextRequest) {
     return NextResponse.rewrite(new URL(INTERNAL_PAGE, req.url));
   }
   if (pathname.startsWith(`/api/${slug}/`)) {
-    const rest = pathname.slice(`/api/${slug}`.length);
-    return NextResponse.rewrite(new URL(INTERNAL_API + rest, req.url));
+    // pathname만 바꿔 rewrite — new URL(path, base)는 쿼리스트링을 승계하지 않아
+    // ?status= 같은 파라미터가 유실된다 (삭제 목록에 숨김 목록이 나오던 버그)
+    const url = req.nextUrl.clone();
+    url.pathname = INTERNAL_API + pathname.slice(`/api/${slug}`.length);
+    return NextResponse.rewrite(url);
   }
   return NextResponse.next();
 }
