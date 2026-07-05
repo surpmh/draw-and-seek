@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { useIsMobile } from "@/lib/useIsMobile";
 
 interface HistoryItem {
   id: string;
@@ -30,6 +31,8 @@ const MEDALS = [
 
 export default function HistoryList() {
   const { t } = useI18n();
+  // 모바일: 포디움·타이틀 없이 검색 + 리스트만, 행은 컴팩트 레이아웃
+  const isMobile = useIsMobile();
   const [items, setItems] = useState<HistoryItem[] | null>(null);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [query, setQuery] = useState("");
@@ -143,10 +146,15 @@ export default function HistoryList() {
         >
           ←
         </Link>
+        {/* 모바일은 본문 타이틀을 생략하는 대신 네비게이션 바에 제목 표기 */}
+        {isMobile && (
+          <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.015em" }}>{t.historyTitle}</div>
+        )}
       </nav>
 
-      <main style={{ maxWidth: 920, margin: "0 auto", padding: "40px 24px 80px" }}>
+      <main style={{ maxWidth: 920, margin: "0 auto", padding: isMobile ? "16px 12px 56px" : "40px 24px 80px" }}>
         {/* 타이틀 */}
+        {!isMobile && (
         <header style={{ marginBottom: 28 }}>
           <div
             style={{
@@ -167,9 +175,10 @@ export default function HistoryList() {
             {t.historySubtitle}
           </p>
         </header>
+        )}
 
-        {/* 포디움 Top 3 */}
-        {podium.length === 3 && (
+        {/* 포디움 Top 3 (데스크톱 전용) */}
+        {!isMobile && podium.length === 3 && (
           <section
             data-screen-label="Podium"
             style={{
@@ -328,6 +337,7 @@ export default function HistoryList() {
             overflow: "hidden",
           }}
         >
+          {!isMobile && (
           <div
             style={{
               display: "grid",
@@ -350,8 +360,84 @@ export default function HistoryList() {
             <div>{t.colResult}</div>
             <div style={{ textAlign: "right" }}>{t.colDuration}</div>
           </div>
+          )}
 
           {rows.map(({ it, rank }) => {
+            // 모바일: 순위·썸네일·닉네임/날짜·기록(상태)만 한 줄로 — 폰 폭에 맞춘 컴팩트 행
+            if (isMobile) {
+              return (
+                <div
+                  key={it.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "30px 44px minmax(0, 1fr) auto",
+                    gap: 10,
+                    alignItems: "center",
+                    padding: "11px 12px",
+                    borderBottom: "1px solid var(--line)",
+                    animation: "rowIn .3s ease both",
+                  }}
+                >
+                  <div
+                    style={{
+                      textAlign: "center",
+                      fontSize: rank <= 3 ? 16 : 13,
+                      fontWeight: 800,
+                      color: rank <= 3 ? "var(--text)" : "var(--text2)",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {rank <= 3 ? ["🥇", "🥈", "🥉"][rank - 1] : rank}
+                  </div>
+                  <div
+                    style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 12,
+                      background: "color-mix(in oklab, var(--accent) 9%, transparent)",
+                      border: "1px solid var(--line)",
+                      overflow: "hidden",
+                      padding: 3,
+                    }}
+                  >
+                    <img
+                      src={it.thumbnailUrl}
+                      alt=""
+                      style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
+                      loading="lazy"
+                    />
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {it.nickname}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "var(--text2)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                      {fmtDate(it.hiddenAt)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, fontVariantNumeric: "tabular-nums", letterSpacing: "-0.01em" }}>
+                      {survivedLabel(it.survivedMs)}
+                    </div>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        marginTop: 3,
+                        fontSize: 10.5,
+                        fontWeight: 700,
+                        color: it.found ? "var(--text2)" : "#22A06B",
+                        background: `color-mix(in oklab, ${it.found ? "var(--text2)" : "#22A06B"} 11%, transparent)`,
+                        borderRadius: 999,
+                        padding: "2px 8px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {it.found ? t.stFound : t.stHidden}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
             return (
               <div
                 key={it.id}
