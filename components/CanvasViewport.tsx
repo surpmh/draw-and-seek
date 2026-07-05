@@ -29,6 +29,7 @@ export function CanvasViewport({
       ref={elRef}
       onPointerDown={onPointerDown}
       onDoubleClick={onDoubleClick}
+      onContextMenu={(e) => e.preventDefault() /* 모바일 롱프레스 이미지 저장 메뉴 차단 */}
       data-screen-label="Canvas"
       style={{
         position: "absolute",
@@ -38,6 +39,9 @@ export function CanvasViewport({
         left: leftInset,
         overflow: "hidden",
         touchAction: "none",
+        WebkitTouchCallout: "none",
+        WebkitUserSelect: "none",
+        userSelect: "none",
         cursor: cursor ?? (panning ? "grabbing" : "grab"),
       }}
     >

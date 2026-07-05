@@ -2,6 +2,13 @@
   box-sizing: border-box;
 }
 
+/* 모바일 롱프레스 시 '이미지 저장' 콜아웃·선택 방지 (타일·썸네일 전부 비인터랙티브 이미지) */
+img {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
 html,
 body {
   margin: 0;

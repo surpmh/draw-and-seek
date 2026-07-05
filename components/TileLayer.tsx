@@ -69,7 +69,7 @@ export function TileLayer({
         alt=""
         draggable={false}
         onLoad={() => onLoad(`0/0/0/${v}`)}
-        style={{ position: "absolute", left: 0, top: 0, width: meta.width, height: meta.height }}
+        style={{ position: "absolute", left: 0, top: 0, width: meta.width, height: meta.height, pointerEvents: "none" }}
       />
       {/* 새 타일 로딩 중엔 직전 세트를 밑에 유지 — 레벨/버전 교체 때 흐릿해지지 않게 */}
       {underlay.map(
@@ -80,7 +80,7 @@ export function TileLayer({
               src={t.url}
               alt=""
               draggable={false}
-              style={{ position: "absolute", left: t.left, top: t.top, width: t.w, height: t.h }}
+              style={{ position: "absolute", left: t.left, top: t.top, width: t.w, height: t.h, pointerEvents: "none" }}
             />
           ),
       )}
@@ -93,7 +93,7 @@ export function TileLayer({
             draggable={false}
             decoding="async"
             onLoad={() => onLoad(t.k)}
-            style={{ position: "absolute", left: t.left, top: t.top, width: t.w, height: t.h }}
+            style={{ position: "absolute", left: t.left, top: t.top, width: t.w, height: t.h, pointerEvents: "none" }}
           />
         ))}
     </>
