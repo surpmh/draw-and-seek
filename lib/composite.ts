@@ -127,7 +127,7 @@ export async function recompositeTiles(
       overlays.push({ input: crop, left: ix0, top: iy0 });
     }
 
-    const out = await base.composite(overlays).webp({ quality: 82 }).toBuffer();
+    const out = await base.composite(overlays).webp({ quality: 95 }).toBuffer();
     await storageUpload(`tiles/serve/${t.z}/${t.tx}/${t.ty}.webp`, out, "image/webp");
   }));
 }

@@ -146,7 +146,7 @@ async function main() {
         const top = ty * TILE;
         const webp = await sharp(level)
           .extract({ left, top, width: Math.min(TILE, lw - left), height: Math.min(TILE, lh - top) })
-          .webp({ quality: 82 })
+          .webp({ quality: 95 })
           .toBuffer();
         // 원본과 서빙본에 동일하게 기록 (아직 숨은 그림 없음)
         for (const root of [BASE_DIR, SERVE_DIR]) {
