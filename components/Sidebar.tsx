@@ -90,17 +90,16 @@ export const Sidebar = memo(function Sidebar({ items, hidden }: { items: Drawing
               background: "color-mix(in oklab, var(--accent) 9%, transparent)",
               border: "1px solid var(--line)",
               boxShadow: it.isMine ? "0 0 0 2px var(--accent)" : undefined,
-              display: "grid",
-              placeItems: "center",
               overflow: "hidden",
               padding: 4,
               cursor: "pointer",
             }}
           >
+            {/* %-max는 grid auto 트랙에서 원본 크기로 트랙을 키워 잘린다 — 명시적 100% 채움 + contain */}
             <img
               src={it.thumbnailUrl}
               alt=""
-              style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
+              style={{ display: "block", width: "100%", height: "100%", objectFit: "contain" }}
               loading="lazy"
             />
           </button>
