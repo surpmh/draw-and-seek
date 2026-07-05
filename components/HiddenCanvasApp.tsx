@@ -211,22 +211,6 @@ export default function HiddenCanvasApp() {
     }
   }, [placing]);
 
-  /** 내 그림 위치로 이동 (모바일 ◎ 버튼) — 좌표는 본인 것만 서버가 내려준다 */
-  const locateMe = useCallback(async () => {
-    try {
-      const r = await fetch("/api/me/drawing", { headers: { "x-device-id": getDeviceId() } });
-      if (!r.ok) return;
-      const data = (await r.json()) as { mine: { cx: number; cy: number } | null };
-      if (data.mine) {
-        viewportRef.current.centerOn(data.mine.cx, data.mine.cy, Math.max(viewportRef.current.view.s, 1));
-      } else {
-        showToast(tRef.current.locateNone);
-      }
-    } catch {
-      /* 네트워크 오류는 조용히 무시 */
-    }
-  }, [showToast]);
-
   // Upload → 그림의 원본 크기를 재고 화면 중앙에 배치 미리보기 생성 (STEP 2 진입)
   const onUpload = useCallback(() => {
     const png = padRef.current.exportPng();
@@ -450,7 +434,7 @@ export default function HiddenCanvasApp() {
       {/* ===== 도움말 모달 ===== */}
       <HelpModal open={helpOpen} onClose={closeHelp} />
 
-      {/* ===== 플로팅 컨트롤 (모바일: 하단 필 위로, 내 그림 위치 버튼 추가) ===== */}
+      {/* ===== 플로팅 컨트롤 (모바일: 하단 필 위로) ===== */}
       <div
         data-screen-label="Floating Controls"
         className="float-stack"
@@ -473,11 +457,7 @@ export default function HiddenCanvasApp() {
         <button className="float-btn" onClick={viewport.resetView} title="Reset View" style={{ fontSize: 16 }}>
           ⟲
         </button>
-        {isMobile ? (
-          <button className="float-btn" onClick={locateMe} title="Locate Me" style={{ fontSize: 15 }}>
-            ◎
-          </button>
-        ) : (
+        {!isMobile && (
           <button className="float-btn" onClick={toggleFs} title="Fullscreen" style={{ fontSize: 16 }}>
             ⛶
           </button>
