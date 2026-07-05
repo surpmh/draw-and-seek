@@ -83,8 +83,8 @@ export default function HiddenCanvasApp() {
   const placingRef = useRef(placing);
   placingRef.current = placing;
 
-  /** 서버 상태 동기화: canvas 메타(version → 타일 무효화) + 미발견 목록 */
-  const refreshState = useCallback(async () => {
+  /** 서버 상태 동기화: canvas 메타(version → 타일 무효화) + 미발견 목록. 조회된 version 반환 */
+  const refreshState = useCallback(async (): Promise<number | null> => {
     try {
       const [c, list] = await Promise.all([
         fetch("/api/canvas").then((r) => r.json()) as Promise<CanvasMeta>,
@@ -94,10 +94,23 @@ export default function HiddenCanvasApp() {
       ]);
       setMeta((prev) => (prev && prev.version === c.version ? prev : c));
       setDrawings(list);
+      return c.version;
     } catch (e) {
       console.error("state refresh failed:", e);
+      return null;
     }
   }, []);
+
+  /** 발견 직후: 서버가 응답 후 백그라운드로 타일을 재합성하므로,
+   * version이 바뀔 때까지 짧게 재조회해 타일에서 그림이 지워지는 시점을 따라잡는다 */
+  const refreshUntilNewVersion = useCallback(async () => {
+    const prev = metaRef.current?.version ?? null;
+    for (let i = 0; i < 10; i++) {
+      const v = await refreshState();
+      if (v !== null && v !== prev) return;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+  }, [refreshState]);
 
   // 탭(팬이 아닌 클릭): 찾기 판정
   const handleTap = useCallback(
@@ -131,7 +144,7 @@ export default function HiddenCanvasApp() {
           });
           if (foundT.current) clearTimeout(foundT.current);
           foundT.current = setTimeout(() => setFoundAnim(null), 2200);
-          void refreshState(); // 타일에서 그림 제거 + 목록/배지 갱신
+          void refreshUntilNewVersion(); // 타일에서 그림 제거 + 목록/배지 갱신 (재합성 완료까지 추적)
         } else {
           setMissRipple({ sx: clientX, sy: clientY });
           if (missT.current) clearTimeout(missT.current);
@@ -143,7 +156,7 @@ export default function HiddenCanvasApp() {
         finding.current = false;
       }
     },
-    [showToast, refreshState],
+    [showToast, refreshUntilNewVersion],
   );
 
   const viewport = useViewport(meta, { onTap: handleTap });

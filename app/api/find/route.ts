@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { readTilesetMeta } from "@/lib/canvas-meta";
 import { recompositeTiles, tilesForBbox } from "@/lib/composite";
@@ -74,22 +74,29 @@ export async function POST(req: Request) {
   if (updErr) return new NextResponse(`DB 오류: ${updErr.message}`, { status: 500 });
   if (!updated?.length) return NextResponse.json({ found: false }); // 다른 사람이 먼저 찾음
 
-  // 발견된 그림을 제외하고 영향 타일 재합성
-  const meta = await readTilesetMeta();
-  const { data: unfoundRows } = await db
-    .from("drawings")
-    .select("id, x, y, w, h, image_path")
-    .is("found_at", null);
-  const unfound = await loadDrawingRects((unfoundRows ?? []) as DrawingRow[]);
-  await recompositeTiles(tilesForBbox(hit, meta), unfound, meta);
-
-  const { data: version } = await db.rpc("bump_canvas_version");
+  // 타일 재합성(Storage 왕복 다수, 수 초~수십 초)은 응답 뒤로 미룬다 —
+  // 판정은 위의 found_at 업데이트로 이미 확정됐고, 응답이 늦으면 클릭 피드백이
+  // 통째로 사라져 사용자가 "안 눌린다"고 느낀다. 버전 범프는 재합성 완료 후에만
+  // 수행해 클라이언트가 새 버전을 보면 새 타일도 준비된 상태를 보장한다.
+  after(async () => {
+    try {
+      const meta = await readTilesetMeta();
+      const { data: unfoundRows } = await db
+        .from("drawings")
+        .select("id, x, y, w, h, image_path")
+        .is("found_at", null);
+      const unfound = await loadDrawingRects((unfoundRows ?? []) as DrawingRow[]);
+      await recompositeTiles(tilesForBbox(hit, meta), unfound, meta);
+      await db.rpc("bump_canvas_version");
+    } catch (e) {
+      console.error("post-find recomposite failed:", e);
+    }
+  });
 
   const hiddenMs = Date.now() - new Date(hit.created_at).getTime();
   return NextResponse.json({
     found: true,
     nickname: hit.nickname,
     hiddenMs,
-    version: Number(version),
   });
 }
