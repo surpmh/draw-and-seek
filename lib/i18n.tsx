@@ -25,6 +25,7 @@ export interface Dict {
 
   // ---- 사이드바 ----
   myDrawing: string;
+  locateNone: string; // 내 그림 위치 찾기 — 숨긴 그림 없음
 
   // ---- 랭킹 ----
   rankingTitle: string;
@@ -133,6 +134,7 @@ const ko: Dict = {
   durUnderHour: "1시간 미만",
 
   myDrawing: "내 그림",
+  locateNone: "아직 숨긴 그림이 없어요 — 그리기로 만들어보세요 ✏️",
 
   rankingTitle: "🏆 숨은 그림 Top 10",
   rankingPill: "랭킹",
@@ -253,6 +255,7 @@ const en: Dict = {
   durUnderHour: "< 1 hour",
 
   myDrawing: "Mine",
+  locateNone: "You haven't hidden a drawing yet — draw one! ✏️",
 
   rankingTitle: "🏆 Hidden Drawings Top 10",
   rankingPill: "Ranking",
@@ -373,6 +376,7 @@ const ja: Dict = {
   durUnderHour: "1時間未満",
 
   myDrawing: "自分の絵",
+  locateNone: "まだ隠した絵がありません — お絵かきで作ってみましょう ✏️",
 
   rankingTitle: "🏆 隠れた絵 Top 10",
   rankingPill: "ランキング",
@@ -493,6 +497,7 @@ const zh: Dict = {
   durUnderHour: "不到1小时",
 
   myDrawing: "我的画",
+  locateNone: "你还没有藏画 — 画一幅吧！✏️",
 
   rankingTitle: "🏆 隐藏绘画 Top 10",
   rankingPill: "排行榜",
@@ -613,6 +618,7 @@ const es: Dict = {
   durUnderHour: "< 1 hora",
 
   myDrawing: "Mío",
+  locateNone: "Aún no has escondido ningún dibujo — ¡dibuja uno! ✏️",
 
   rankingTitle: "🏆 Top 10 de dibujos ocultos",
   rankingPill: "Ranking",
@@ -733,6 +739,7 @@ const fr: Dict = {
   durUnderHour: "< 1 heure",
 
   myDrawing: "À moi",
+  locateNone: "Vous n'avez pas encore caché de dessin — dessinez-en un ! ✏️",
 
   rankingTitle: "🏆 Top 10 des dessins cachés",
   rankingPill: "Classement",
@@ -853,6 +860,7 @@ const de: Dict = {
   durUnderHour: "< 1 Stunde",
 
   myDrawing: "Meins",
+  locateNone: "Du hast noch kein Bild versteckt — zeichne eins! ✏️",
 
   rankingTitle: "🏆 Top 10 versteckte Bilder",
   rankingPill: "Rangliste",

@@ -8,7 +8,7 @@ import { useI18n } from "@/lib/i18n";
 const PALETTE = ["#1b1e23", "#ffffff", "#4f8cff", "#ff6b5e", "#ffb020", "#22a06b"];
 
 // 투명 배경임을 알리는 체커보드 (data URI, 라이트/다크 공통으로 은은하게)
-const CHECKER =
+export const CHECKER =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16'%3E%3Crect width='8' height='8' fill='%23e9e9ec'/%3E%3Crect x='8' y='8' width='8' height='8' fill='%23e9e9ec'/%3E%3C/svg%3E\")";
 
 const ringOn = "0 0 0 2px var(--solid), 0 0 0 4px var(--accent)";
@@ -16,7 +16,7 @@ const ringOff = "inset 0 0 0 1px rgba(128,128,128,.25)";
 
 const toolSvg = { fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
-function PenIcon({ size = 15 }: { size?: number }) {
+export function PenIcon({ size = 15 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...toolSvg}>
       <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
@@ -25,7 +25,7 @@ function PenIcon({ size = 15 }: { size?: number }) {
   );
 }
 
-function FillIcon({ size = 15 }: { size?: number }) {
+export function FillIcon({ size = 15 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...toolSvg}>
       <path d="m19 11-8-8-8.6 8.6a2 2 0 0 0 0 2.8l5.2 5.2c.8.8 2 .8 2.8 0L19 11Z" />
@@ -36,7 +36,7 @@ function FillIcon({ size = 15 }: { size?: number }) {
   );
 }
 
-function EraserIcon({ size = 15 }: { size?: number }) {
+export function EraserIcon({ size = 15 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...toolSvg}>
       <path d="m7 21-4.3-4.3c-1-1-1-2.5 0-3.4l9.6-9.6c1-1 2.5-1 3.4 0l5.6 5.6c1 1 1 2.5 0 3.4L13 21" />
@@ -47,7 +47,7 @@ function EraserIcon({ size = 15 }: { size?: number }) {
 }
 
 /** 납작한 비율의 언두 화살표 (글리프 ↶는 폰트에 따라 세로로 길쭉해서 SVG로 직접 그림). mirrored=리두 */
-function UndoIcon({ mirrored }: { mirrored?: boolean }) {
+export function UndoIcon({ mirrored }: { mirrored?: boolean }) {
   return (
     <svg
       width="15"
@@ -67,7 +67,7 @@ function UndoIcon({ mirrored }: { mirrored?: boolean }) {
 }
 
 /** 지워질 영역을 그대로 보여주는 속 빈 원형 커서 — 밝은/어두운 배경 모두에서 보이도록 이중 링 */
-const eraserCursor = (diameter: number) => {
+export const eraserCursor = (diameter: number) => {
   const s = Math.ceil(diameter) + 4;
   const c = s / 2;
   const r = diameter / 2;

@@ -13,6 +13,10 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // 모바일 확대는 캔버스 핀치 제스처로만 — 페이지 자체 확대 방지
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover", // env(safe-area-inset-*) 활성화 (노치/홈바)
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

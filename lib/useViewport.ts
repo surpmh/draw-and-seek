@@ -35,6 +35,9 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
   const metaRef = useRef(meta);
   metaRef.current = meta;
   const pan = useRef<{ x: number; y: number; vx: number; vy: number; moved: boolean; cx: number; cy: number } | null>(null);
+  /** 활성 포인터 위치 (멀티터치) — 두 개가 되면 핀치 줌으로 전환 */
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ dist: number; mid: { x: number; y: number }; view: View } | null>(null);
   const onTapRef = useRef(options.onTap);
   onTapRef.current = options.onTap;
   /** 팬 직후의 클릭을 무시하기 위한 플래그 (M3의 찾기 판정에서 사용) */
@@ -175,9 +178,36 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
     };
   }, []);
 
-  // ---- 팬 (pointer) ----
+  // ---- 팬 + 핀치 (pointer) ----
   const panMove = useCallback(
     (e: PointerEvent) => {
+      if (pointers.current.has(e.pointerId)) {
+        pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      }
+      // 핀치 줌: 시작 시점 뷰를 기준으로 배율과 이동을 함께 계산 (누적 오차 없음)
+      const pz = pinch.current;
+      if (pz && pointers.current.size >= 2) {
+        const el = elRef.current;
+        if (!el) return;
+        const [a, b] = [...pointers.current.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        if (dist < 1) return;
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        const r = el.getBoundingClientRect();
+        const v = pz.view;
+        const ns = clampS(v.s * (dist / pz.dist));
+        const k = ns / v.s;
+        const px = pz.mid.x - r.left;
+        const py = pz.mid.y - r.top;
+        commitView(
+          clampXY({
+            x: px - (px - v.x) * k + (mid.x - pz.mid.x),
+            y: py - (py - v.y) * k + (mid.y - pz.mid.y),
+            s: ns,
+          }),
+        );
+        return;
+      }
       const p = pan.current;
       if (!p) return;
       const dx = e.clientX - p.x;
@@ -185,11 +215,22 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
       if (Math.abs(dx) + Math.abs(dy) > 4) p.moved = true;
       commitView(clampXY({ x: p.vx + dx, y: p.vy + dy, s: latestView().s }));
     },
-    [clampXY, commitView, latestView],
+    [clampXY, commitView, latestView, clampS],
   );
 
   const panEnd = useCallback(
     (e?: PointerEvent) => {
+      if (e) pointers.current.delete(e.pointerId);
+      // 핀치 종료(손가락 하나만 남음): 남은 손가락은 새 제스처로 취급하지 않는다
+      if (pinch.current && pointers.current.size < 2) {
+        pinch.current = null;
+        pan.current = null;
+        suppressClick.current = true;
+        setTimeout(() => {
+          suppressClick.current = false;
+        }, 80);
+      }
+      if (e && pointers.current.size > 0) return; // 아직 손가락이 남음 — 리스너 유지
       const p = pan.current;
       if (p?.moved) {
         suppressClick.current = true;
@@ -203,8 +244,10 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
         onTapRef.current?.(cx, cy);
       }
       pan.current = null;
+      pointers.current.clear();
       window.removeEventListener("pointermove", panMove);
       window.removeEventListener("pointerup", panEnd);
+      window.removeEventListener("pointercancel", panEnd);
       setPanning(false);
     },
     [panMove],
@@ -212,15 +255,29 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
-      const { x, y } = viewRef.current;
-      pan.current = { x: e.clientX, y: e.clientY, vx: x, vy: y, moved: false, cx: e.clientX, cy: e.clientY };
-      window.addEventListener("pointermove", panMove);
-      window.addEventListener("pointerup", panEnd);
+      if (e.pointerType === "mouse" && e.button !== 0) return;
+      const first = pointers.current.size === 0;
+      pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.current.size === 2) {
+        // 두 번째 손가락 → 팬 중단, 핀치 시작
+        const [a, b] = [...pointers.current.values()];
+        pinch.current = {
+          dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)),
+          mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+          view: latestView(),
+        };
+        pan.current = null;
+      } else if (first) {
+        const { x, y } = viewRef.current;
+        pan.current = { x: e.clientX, y: e.clientY, vx: x, vy: y, moved: false, cx: e.clientX, cy: e.clientY };
+        window.addEventListener("pointermove", panMove);
+        window.addEventListener("pointerup", panEnd);
+        window.addEventListener("pointercancel", panEnd);
+      }
       setPanning(true);
       setAnimating(false);
     },
-    [panMove, panEnd],
+    [panMove, panEnd, latestView],
   );
 
   const onDoubleClick = useCallback(
@@ -263,6 +320,7 @@ export function useViewport(meta: CanvasMeta | null, options: ViewportOptions = 
     return () => {
       window.removeEventListener("pointermove", panMove);
       window.removeEventListener("pointerup", panEnd);
+      window.removeEventListener("pointercancel", panEnd);
       if (animT.current) clearTimeout(animT.current);
       if (rafId.current != null) cancelAnimationFrame(rafId.current);
     };

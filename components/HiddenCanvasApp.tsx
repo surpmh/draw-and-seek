@@ -22,6 +22,8 @@ import { Sidebar, type DrawingItem } from "./Sidebar";
 import { RankingPanel } from "./RankingPanel";
 import { FoundAnimation, MissRipple, type FoundAnim } from "./FoundAnimation";
 import { HelpModal } from "./HelpModal";
+import { MobileAppBar, MobileActionPills, MobileSheet, MobileDrawingDrawer } from "./MobileChrome";
+import { useIsMobile } from "@/lib/useIsMobile";
 import { useI18n } from "@/lib/i18n";
 
 const POLL_MS = 30_000;
@@ -54,6 +56,10 @@ export default function HiddenCanvasApp() {
   const toggleRanking = useCallback(() => setRankingOpen((v) => !v), []);
   const [helpOpen, setHelpOpen] = useState(false);
   const closeHelp = useCallback(() => setHelpOpen(false), []);
+  // ---- 모바일 크롬 (플로팅 앱바 + 바텀시트) ----
+  const isMobile = useIsMobile();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   // memo된 DrawingPanel이 팬/줌 리렌더에 휩쓸리지 않도록 identity 고정
   const minimap = useMemo(
     () =>
@@ -196,6 +202,30 @@ export default function HiddenCanvasApp() {
   metaRef.current = meta;
   const viewportRef = useRef(viewport);
   viewportRef.current = viewport;
+
+  // 배치 단계 진입 시 모바일 시트류 닫기 (업로드 검증 성공 후에만 닫혀야 하므로 여기서 처리)
+  useEffect(() => {
+    if (placing) {
+      setDrawerOpen(false);
+      setSheetOpen(false);
+    }
+  }, [placing]);
+
+  /** 내 그림 위치로 이동 (모바일 ◎ 버튼) — 좌표는 본인 것만 서버가 내려준다 */
+  const locateMe = useCallback(async () => {
+    try {
+      const r = await fetch("/api/me/drawing", { headers: { "x-device-id": getDeviceId() } });
+      if (!r.ok) return;
+      const data = (await r.json()) as { mine: { cx: number; cy: number } | null };
+      if (data.mine) {
+        viewportRef.current.centerOn(data.mine.cx, data.mine.cy, Math.max(viewportRef.current.view.s, 1));
+      } else {
+        showToast(tRef.current.locateNone);
+      }
+    } catch {
+      /* 네트워크 오류는 조용히 무시 */
+    }
+  }, [showToast]);
 
   // Upload → 그림의 원본 크기를 재고 화면 중앙에 배치 미리보기 생성 (STEP 2 진입)
   const onUpload = useCallback(() => {
@@ -341,7 +371,7 @@ export default function HiddenCanvasApp() {
       }}
     >
       {meta ? (
-        <CanvasViewport meta={meta} viewport={viewport} topInset={fs ? 0 : 56}>
+        <CanvasViewport meta={meta} viewport={viewport} topInset={fs || isMobile ? 0 : 56}>
           {placing && (
             <PlacementOverlay placing={placing} scale={viewport.view.s} onMove={onMove} />
           )}
@@ -361,7 +391,9 @@ export default function HiddenCanvasApp() {
         </div>
       )}
 
-      {/* ===== 탑 네비게이션 ===== */}
+      {/* ===== 탑 네비게이션 (데스크톱) / 플로팅 앱바 (모바일) ===== */}
+      {isMobile && <MobileAppBar remain={meta?.remainCount ?? 0} onHelp={() => setHelpOpen(true)} />}
+      {!isMobile && (
       <nav
         data-screen-label="Top Navigation"
         style={{
@@ -413,18 +445,19 @@ export default function HiddenCanvasApp() {
         </button>
         </div>
       </nav>
+      )}
 
       {/* ===== 도움말 모달 ===== */}
       <HelpModal open={helpOpen} onClose={closeHelp} />
 
-      {/* ===== 플로팅 컨트롤 ===== */}
+      {/* ===== 플로팅 컨트롤 (모바일: 하단 필 위로, 내 그림 위치 버튼 추가) ===== */}
       <div
         data-screen-label="Floating Controls"
         className="float-stack"
         style={{
           position: "fixed",
-          right: 16,
-          bottom: 16,
+          right: isMobile ? 12 : 16,
+          bottom: isMobile ? "calc(72px + env(safe-area-inset-bottom))" : 16,
           zIndex: 37,
           display: "flex",
           flexDirection: "column",
@@ -440,14 +473,41 @@ export default function HiddenCanvasApp() {
         <button className="float-btn" onClick={viewport.resetView} title="Reset View" style={{ fontSize: 16 }}>
           ⟲
         </button>
-        <button className="float-btn" onClick={toggleFs} title="Fullscreen" style={{ fontSize: 16 }}>
-          ⛶
-        </button>
+        {isMobile ? (
+          <button className="float-btn" onClick={locateMe} title="Locate Me" style={{ fontSize: 15 }}>
+            ◎
+          </button>
+        ) : (
+          <button className="float-btn" onClick={toggleFs} title="Fullscreen" style={{ fontSize: 16 }}>
+            ⛶
+          </button>
+        )}
       </div>
 
-      {/* ===== 사이드바(풀스크린만 숨김) + 랭킹(풀스크린·배치 중 숨김) ===== */}
-      <Sidebar items={drawings} hidden={fs} />
-      <RankingPanel items={drawings} hidden={fs || !!placing} open={rankingOpen} onToggle={toggleRanking} />
+      {/* ===== 데스크톱: 사이드바(풀스크린만 숨김) + 랭킹(풀스크린·배치 중 숨김) ===== */}
+      {!isMobile && <Sidebar items={drawings} hidden={fs} />}
+      {!isMobile && (
+        <RankingPanel items={drawings} hidden={fs || !!placing} open={rankingOpen} onToggle={toggleRanking} />
+      )}
+
+      {/* ===== 모바일: 하단 액션 필 + 숨은 그림 시트 + 그리기 드로어 ===== */}
+      {isMobile && !placing && (
+        <MobileActionPills
+          remain={meta?.remainCount ?? 0}
+          onOpenSheet={() => {
+            setSheetOpen(true);
+            setDrawerOpen(false);
+          }}
+          onOpenDrawer={() => {
+            setDrawerOpen(true);
+            setSheetOpen(false);
+          }}
+        />
+      )}
+      {isMobile && <MobileSheet items={drawings} open={sheetOpen} onClose={() => setSheetOpen(false)} />}
+      {isMobile && (
+        <MobileDrawingDrawer pad={pad} open={drawerOpen && !placing} onClose={() => setDrawerOpen(false)} onUpload={onUpload} />
+      )}
 
       {/* ===== 발견/미스 애니메이션 ===== */}
       {foundAnim && <FoundAnimation anim={foundAnim} />}
@@ -517,8 +577,8 @@ export default function HiddenCanvasApp() {
         />
       )}
 
-      {/* ===== 그림판 (풀스크린·배치 중에는 숨김) ===== */}
-      {!fs && !placing && (
+      {/* ===== 그림판 (데스크톱 — 풀스크린·배치 중에는 숨김) ===== */}
+      {!isMobile && !fs && !placing && (
         <DrawingPanel
           pad={pad}
           open={panelOpen}
@@ -533,7 +593,9 @@ export default function HiddenCanvasApp() {
         <div
           style={{
             position: "fixed",
-            bottom: panelOpen && !fs ? 282 : 72,
+            // 모바일은 시트/드로어에 가리지 않게 상단, 데스크톱은 그림판 위
+            top: isMobile ? "calc(70px + env(safe-area-inset-top))" : undefined,
+            bottom: isMobile ? undefined : panelOpen && !fs ? 282 : 72,
             left: "50%",
             zIndex: 65,
             background: "var(--surface)",

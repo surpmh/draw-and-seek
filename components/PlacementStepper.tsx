@@ -34,7 +34,7 @@ export function PlacementStepper({
       data-screen-label="Upload Step"
       style={{
         position: "fixed",
-        top: 72,
+        top: "calc(68px + env(safe-area-inset-top))",
         left: "50%",
         transform: "translateX(-50%)",
         zIndex: 60,
@@ -45,7 +45,7 @@ export function PlacementStepper({
         borderRadius: 16,
         boxShadow: "var(--shadow)",
         padding: "14px 16px",
-        width: 360,
+        width: "min(360px, calc(100vw - 24px))",
         animation: "fadeUp .35s cubic-bezier(.22,1,.36,1) both",
       }}
     >
