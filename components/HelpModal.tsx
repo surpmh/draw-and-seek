@@ -27,16 +27,17 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
         background: "rgba(12, 14, 18, .4)",
         display: "grid",
         placeItems: "center",
-        padding: 20,
+        padding: "max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom))",
       }}
     >
       <div
         data-screen-label="Help Modal"
         onPointerDown={(e) => e.stopPropagation()}
         style={{
-          width: 520,
-          maxWidth: "100%",
-          maxHeight: "84vh",
+          // grid auto 트랙에서 maxWidth:100%는 자기 자신 기준(순환)이라 제약이 안 된다 — 뷰포트 기준으로 제한
+          width: "min(520px, calc(100vw - 32px))",
+          // vh는 모바일 주소창을 포함해 계산돼 하단이 잘린다 — 동적 뷰포트(dvh) 기준으로 제한
+          maxHeight: "min(84dvh, calc(100dvh - 40px))",
           display: "flex",
           flexDirection: "column",
           background: "var(--solid)",

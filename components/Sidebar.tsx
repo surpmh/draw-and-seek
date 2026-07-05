@@ -20,9 +20,20 @@ const STRIP_W = 76;
 /**
  * 화면 좌측에 떠 있는 Hidden Drawings 스트립 — 찾아야 할 그림 썸네일만 세로로 나열.
  * hover(마우스)·탭(터치) 시 옆에 정보 카드를 띄운다. 캔버스는 뒤로 꽉 찬다.
+ * compact: 모바일용 축소판 — 앱바 아래에서 시작하고 하단 액션 필을 침범하지 않는다.
  */
-export const Sidebar = memo(function Sidebar({ items, hidden }: { items: DrawingItem[]; hidden?: boolean }) {
+export const Sidebar = memo(function Sidebar({
+  items,
+  hidden,
+  compact,
+}: {
+  items: DrawingItem[];
+  hidden?: boolean;
+  compact?: boolean;
+}) {
   const { t } = useI18n();
+  const stripW = compact ? 52 : STRIP_W;
+  const stripLeft = compact ? 8 : 16;
   const [info, setInfo] = useState<{ it: DrawingItem; y: number } | null>(null);
   const hiddenLabel = (ms: number) => {
     const days = Math.floor(ms / 86400_000);
@@ -44,10 +55,13 @@ export const Sidebar = memo(function Sidebar({ items, hidden }: { items: Drawing
       data-screen-label="Hidden Drawings Strip"
       style={{
         position: "fixed",
-        left: 16,
-        top: 68,
-        maxHeight: "calc(100vh - 100px)",
-        width: STRIP_W,
+        left: stripLeft,
+        top: compact ? "calc(66px + env(safe-area-inset-top))" : 68,
+        // compact(모바일)는 하단 액션 필(≈72px + safe-area)을 침범하지 않게 제한
+        maxHeight: compact
+          ? "calc(100dvh - 150px - env(safe-area-inset-top) - env(safe-area-inset-bottom))"
+          : "calc(100vh - 100px)",
+        width: stripW,
         zIndex: 35,
         display: "flex",
         flexDirection: "column",
@@ -55,7 +69,7 @@ export const Sidebar = memo(function Sidebar({ items, hidden }: { items: Drawing
         backdropFilter: "blur(10px) saturate(1.5)",
         WebkitBackdropFilter: "blur(10px) saturate(1.5)",
         border: "1px solid var(--line)",
-        borderRadius: 16,
+        borderRadius: compact ? 14 : 16,
         boxShadow: "var(--shadow)",
         overflow: "hidden",
       }}
@@ -63,10 +77,10 @@ export const Sidebar = memo(function Sidebar({ items, hidden }: { items: Drawing
       <div
         style={{
           overflowY: "auto",
-          padding: 8,
+          padding: compact ? 6 : 8,
           display: "flex",
           flexDirection: "column",
-          gap: 8,
+          gap: compact ? 6 : 8,
         }}
         onMouseLeave={() => setInfo(null)}
       >
@@ -86,7 +100,7 @@ export const Sidebar = memo(function Sidebar({ items, hidden }: { items: Drawing
             style={{
               aspectRatio: "1",
               flexShrink: 0,
-              borderRadius: 11,
+              borderRadius: compact ? 9 : 11,
               background: "color-mix(in oklab, var(--accent) 9%, transparent)",
               border: "1px solid var(--line)",
               boxShadow: it.isMine ? "0 0 0 2px var(--accent)" : undefined,
@@ -111,7 +125,7 @@ export const Sidebar = memo(function Sidebar({ items, hidden }: { items: Drawing
         <div
           style={{
             position: "fixed",
-            left: 16 + STRIP_W + 10,
+            left: stripLeft + stripW + 10,
             top: info.y,
             zIndex: 45,
             pointerEvents: "none",

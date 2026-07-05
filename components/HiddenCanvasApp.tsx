@@ -484,16 +484,16 @@ export default function HiddenCanvasApp() {
         )}
       </div>
 
-      {/* ===== 데스크톱: 사이드바(풀스크린만 숨김) + 랭킹(풀스크린·배치 중 숨김) ===== */}
+      {/* ===== 사이드바: 데스크톱은 풀스크린만 숨김, 모바일은 축소판(배치 중 숨김) ===== */}
       {!isMobile && <Sidebar items={drawings} hidden={fs} />}
+      {isMobile && <Sidebar items={drawings} hidden={!!placing} compact />}
       {!isMobile && (
         <RankingPanel items={drawings} hidden={fs || !!placing} open={rankingOpen} onToggle={toggleRanking} />
       )}
 
-      {/* ===== 모바일: 하단 액션 필 + 숨은 그림 시트 + 그리기 드로어 ===== */}
+      {/* ===== 모바일: 하단 액션 필 + 랭킹 시트 + 그리기 드로어 ===== */}
       {isMobile && !placing && (
         <MobileActionPills
-          remain={meta?.remainCount ?? 0}
           onOpenSheet={() => {
             setSheetOpen(true);
             setDrawerOpen(false);

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { memo, useState } from "react";
+import { memo } from "react";
 import { ERASER_SCALE, type DrawPad } from "@/lib/useDrawPad";
 import { ColorPickerButton } from "./ColorPicker";
 import { CHECKER, PenIcon, FillIcon, EraserIcon, UndoIcon, eraserCursor } from "./DrawingPanel";
@@ -74,19 +74,6 @@ export function MobileAppBar({ remain, onHelp }: { remain: number; onHelp: () =>
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        <div
-          style={{
-            width: 24,
-            height: 24,
-            borderRadius: 8,
-            flexShrink: 0,
-            background: "linear-gradient(135deg, var(--accent), color-mix(in oklab, var(--accent) 55%, #8b5cf6))",
-            display: "grid",
-            placeItems: "center",
-          }}
-        >
-          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "rgba(255,255,255,.92)" }} />
-        </div>
         <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.015em", whiteSpace: "nowrap" }}>Draw & Seek</div>
         <div
           style={{
@@ -115,13 +102,11 @@ export function MobileAppBar({ remain, onHelp }: { remain: number; onHelp: () =>
   );
 }
 
-/** 하단 액션 필 2개 — 숨은 그림 시트 · 그리기 드로어 */
+/** 하단 액션 필 2개 — 랭킹 시트 · 그리기 드로어 (숨은 그림 목록은 좌측 스트립이 담당) */
 export function MobileActionPills({
-  remain,
   onOpenSheet,
   onOpenDrawer,
 }: {
-  remain: number;
   onOpenSheet: () => void;
   onOpenDrawer: () => void;
 }) {
@@ -166,7 +151,7 @@ export function MobileActionPills({
           color: "var(--text)",
         }}
       >
-        🖼️ {t.remainCount(remain)}
+        🏆 {t.rankingPill}
       </button>
       <button
         onClick={onOpenDrawer}
@@ -187,18 +172,10 @@ export function MobileActionPills({
   );
 }
 
-/** 숨은 그림 / Top 10 바텀시트 */
+/** Top 10 랭킹 바텀시트 — 숨은 그림 목록은 좌측 스트립(Sidebar compact)이 담당 */
 export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; open: boolean; onClose: () => void }) {
   const { t } = useI18n();
-  const [tab, setTab] = useState<"hidden" | "rank">("hidden");
 
-  const hiddenLabel = (ms: number) => {
-    const days = Math.floor(ms / 86400_000);
-    if (days >= 1) return t.hiddenForDays(days);
-    const hours = Math.floor(ms / 3600_000);
-    if (hours >= 1) return t.hiddenForHours(hours);
-    return t.justHidden;
-  };
   const badgeLabel = (ms: number) => {
     const days = Math.floor(ms / 86400_000);
     if (days >= 1) return t.badgeDays(days);
@@ -208,26 +185,13 @@ export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; op
   };
   const top = [...items].sort((a, b) => b.hiddenMs - a.hiddenMs).slice(0, 10);
 
-  const tabBtn = (active: boolean): React.CSSProperties => ({
-    flex: 1,
-    height: 36,
-    borderRadius: 11,
-    border: `1px solid ${active ? "var(--accent)" : "var(--line)"}`,
-    background: active ? "color-mix(in oklab, var(--accent) 14%, transparent)" : "transparent",
-    color: "var(--text)",
-    fontSize: 12.5,
-    fontWeight: 700,
-    fontFamily: "inherit",
-    cursor: "pointer",
-  });
-
   return (
     <>
       {open && (
         <div onClick={onClose} style={{ position: "fixed", inset: 0, zIndex: 54, background: "rgba(10,12,16,.28)", animation: "popIn .25s ease both" }} />
       )}
       <div
-        data-screen-label="Hidden Drawings Sheet"
+        data-screen-label="Ranking Sheet"
         style={{
           ...sheetBase,
           height: "min(480px, 72dvh)",
@@ -235,51 +199,9 @@ export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; op
         }}
       >
         <SheetHandle onClose={onClose} />
-        <div style={{ display: "flex", gap: 6, padding: "4px 16px 12px", flexShrink: 0 }}>
-          <button onClick={() => setTab("hidden")} style={tabBtn(tab === "hidden")}>
-            {t.filterHidden}
-          </button>
-          <button onClick={() => setTab("rank")} style={tabBtn(tab === "rank")}>
-            🏆 {t.rankingPill}
-          </button>
-        </div>
+        <div style={{ padding: "0 18px 10px", fontSize: 13.5, fontWeight: 700, flexShrink: 0 }}>{t.rankingTitle}</div>
         <div style={{ flex: 1, overflowY: "auto", padding: "0 10px" }}>
-          {tab === "hidden" &&
-            items.map((it) => (
-              <div key={it.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: 10, borderRadius: 14 }}>
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 13,
-                    background: "color-mix(in oklab, var(--accent) 9%, transparent)",
-                    border: "1px solid var(--line)",
-                    boxShadow: it.isMine ? "0 0 0 2px var(--accent)" : undefined,
-                    display: "grid",
-                    placeItems: "center",
-                    overflow: "hidden",
-                    flexShrink: 0,
-                  }}
-                >
-                  <img src={it.thumbnailUrl} alt="" style={{ maxWidth: 38, maxHeight: 38, objectFit: "contain" }} loading="lazy" />
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    by {it.nickname}
-                    {it.isMine && (
-                      <span style={{ marginLeft: 6, fontSize: 10, color: "var(--accent)", fontWeight: 700 }}>{t.myDrawing}</span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: "var(--text2)", marginTop: 2 }}>{hiddenLabel(it.hiddenMs)}</div>
-                </div>
-              </div>
-            ))}
-          {tab === "hidden" && items.length === 0 && (
-            <div style={{ padding: "36px 12px", textAlign: "center", color: "var(--text2)", fontSize: 12.5 }}>{t.emptyTitle}</div>
-          )}
-
-          {tab === "rank" &&
-            top.map((r, i) => (
+          {top.map((r, i) => (
               <div key={r.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 10px", borderRadius: 14 }}>
                 <div
                   style={{
@@ -327,12 +249,11 @@ export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; op
                 </div>
               </div>
             ))}
-          {tab === "rank" && top.length === 0 && (
+          {top.length === 0 && (
             <div style={{ padding: "36px 12px", textAlign: "center", color: "var(--text2)", fontSize: 12.5 }}>{t.rankingEmpty}</div>
           )}
         </div>
-        {tab === "rank" && (
-          <Link
+        <Link
             href="/history"
             style={{
               display: "flex",
@@ -349,8 +270,7 @@ export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; op
           >
             <span>{t.rankingHistoryLink}</span>
             <span>→</span>
-          </Link>
-        )}
+        </Link>
       </div>
     </>
   );
@@ -410,7 +330,8 @@ export const MobileDrawingDrawer = memo(function MobileDrawingDrawer({
           <EraserIcon />
         </button>
         <div style={{ width: 1, height: 22, background: "var(--line)", margin: "0 2px", flexShrink: 0 }} />
-        <div style={{ display: "flex", gap: 7, alignItems: "center", flex: 1, minWidth: 0, overflowX: "auto" }}>
+        {/* overflow 스크롤은 좁은 화면에서 스와치와 선택 링을 잘라먹는다 — 줄바꿈으로 전부 보이게 */}
+        <div style={{ display: "flex", gap: 7, alignItems: "center", flex: 1, minWidth: 0, flexWrap: "wrap", padding: "2px 0" }}>
           {PALETTE.map((c) => (
             <button
               key={c}
