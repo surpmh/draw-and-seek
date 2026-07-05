@@ -1,0 +1,165 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #f3f4f6;
+}
+
+.hc {
+  --accent: #4f8cff;
+  --bg: #f3f4f6;
+  --canvas: #fbfbfa;
+  --dot: rgba(20, 25, 35, 0.08);
+  --surface: rgba(255, 255, 255, 0.74);
+  --solid: #ffffff;
+  --text: #1b1e23;
+  --text2: #7a818c;
+  --line: rgba(22, 27, 38, 0.09);
+  --pad: #ffffff;
+  --gold: #e8a93d;
+  --silver: #9aa3b0;
+  --bronze: #c98a5e;
+  --shadow: 0 12px 40px rgba(18, 24, 38, 0.12), 0 2px 8px rgba(18, 24, 38, 0.06);
+}
+
+.hc[data-theme="dark"] {
+  --bg: #0d0f12;
+  --canvas: #14161a;
+  --dot: rgba(255, 255, 255, 0.07);
+  --surface: rgba(23, 26, 31, 0.74);
+  --solid: #1b1e23;
+  --text: #f1f3f6;
+  --text2: #8e96a3;
+  --line: rgba(255, 255, 255, 0.09);
+  --pad: #22262c;
+  --shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+@keyframes popIn {
+  0% {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+  55% {
+    transform: scale(1.06);
+    opacity: 1;
+  }
+  80% {
+    transform: scale(0.98);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* left:50% 요소용 popIn — translateX(-50%)를 유지한 채 튀어나온다 */
+@keyframes popInCentered {
+  0% {
+    transform: translateX(-50%) scale(0.7);
+    opacity: 0;
+  }
+  55% {
+    transform: translateX(-50%) scale(1.06);
+    opacity: 1;
+  }
+  80% {
+    transform: translateX(-50%) scale(0.98);
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes glowPulse {
+  0% {
+    transform: translate(-50%, -50%) scale(0.35);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.6);
+    opacity: 0;
+  }
+}
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  transition: background 0.2s;
+  color: var(--text2);
+}
+
+.icon-btn:hover {
+  background: color-mix(in oklab, var(--text) 7%, transparent);
+}
+
+.float-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  backdrop-filter: blur(18px) saturate(1.6);
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 0.15s;
+  display: grid;
+  place-items: center;
+}
+
+.float-btn:hover {
+  transform: scale(1.08);
+}
+
+/* 플로팅 버튼 묶음 — 평소엔 반투명으로 존재감을 낮추고 hover 시 또렷하게.
+   터치 기기(hover 없음)에서는 항상 완전 불투명 유지 */
+.float-stack {
+  transition: opacity 0.25s ease;
+}
+@media (hover: hover) {
+  .float-stack {
+    opacity: 0.5;
+  }
+  .float-stack:hover,
+  .float-stack:focus-within {
+    opacity: 1;
+  }
+}

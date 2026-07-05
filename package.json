@@ -1,0 +1,30 @@
+{
+  "name": "drawandseek",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "seed": "tsx scripts/seed-tiles.ts",
+    "stitch": "tsx scripts/stitch-grid.ts",
+    "check-db": "tsx scripts/check-db.ts",
+    "gen-regions": "tsx scripts/generate-regions.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.110.0",
+    "dotenv": "^17.4.2",
+    "next": "^15.3.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "sharp": "^0.34.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "playwright": "^1.61.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.8.0"
+  }
+}
