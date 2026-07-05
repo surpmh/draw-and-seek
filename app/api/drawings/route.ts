@@ -8,6 +8,7 @@ import { saveDrawingPng, loadDrawingRects, type DrawingRow } from "@/lib/drawing
 import { MAX_LONG, MIN_TRIMMED_LONG, MIN_INK_WORLD, ALPHA_VISIBLE } from "@/lib/placement";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // 타일 재합성(Storage 왕복 다수)이 기본 제한을 넘을 수 있음
 
 /**
  * 미발견 그림 목록 — 좌표는 절대 포함하지 않는다.

@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "seed": "tsx scripts/seed-tiles.ts",
+    "sync-storage": "tsx scripts/sync-storage.ts",
     "stitch": "tsx scripts/stitch-grid.ts",
     "check-db": "tsx scripts/check-db.ts",
     "gen-regions": "tsx scripts/generate-regions.ts"

@@ -1,10 +1,4 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-
-export const TILES_DIR = path.join(process.cwd(), "data", "tiles");
-export const BASE_DIR = path.join(TILES_DIR, "base");
-export const SERVE_DIR = path.join(TILES_DIR, "serve");
-export const DRAWINGS_DIR = path.join(process.cwd(), "data", "drawings");
+import { storageDownload } from "./storage";
 
 export interface TilesetMeta {
   width: number;
@@ -17,8 +11,11 @@ let cached: TilesetMeta | null = null;
 
 export async function readTilesetMeta(): Promise<TilesetMeta> {
   if (cached) return cached;
-  const raw = await fs.readFile(path.join(TILES_DIR, "meta.json"), "utf8");
-  cached = JSON.parse(raw) as TilesetMeta;
+  const raw = await storageDownload("tiles/meta.json");
+  if (!raw) {
+    throw new Error("tiles/meta.json이 Storage에 없습니다 — npm run sync-storage 를 먼저 실행하세요");
+  }
+  cached = JSON.parse(raw.toString("utf8")) as TilesetMeta;
   return cached;
 }
 

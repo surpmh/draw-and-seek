@@ -1,11 +1,10 @@
 import sharp from "sharp";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { BASE_DIR, SERVE_DIR, type TilesetMeta } from "./canvas-meta";
+import { type TilesetMeta } from "./canvas-meta";
+import { storageDownload, storageUpload } from "./storage";
 
 /**
- * 쓰기 시점 타일 합성 (로컬/Node = sharp).
- * Cloudflare Workers 배포 시 이 파일을 WASM(jSquash) 구현으로 교체한다 — 시그니처 유지.
+ * 쓰기 시점 타일 합성 (sharp).
+ * 타일 원본/서빙본은 Supabase Storage에 저장 — 서버리스(Vercel)에서도 동작한다.
  */
 
 const TILE = 512;
@@ -85,20 +84,17 @@ export async function recompositeTiles(
     return { buf, rw, rh };
   };
 
-  for (const t of tiles) {
+  // Storage 왕복(다운로드+업로드)이 타일당 수백 ms — 서버리스 시간 제한 안에 끝나도록 병렬 처리
+  await Promise.all(tiles.map(async (t) => {
     const f = worldPerPx(t.z, meta.maxZoom);
     const tileLeft = t.tx * TILE * f;
     const tileTop = t.ty * TILE * f;
     const tileRight = tileLeft + TILE * f;
     const tileBottom = tileTop + TILE * f;
 
-    const baseFile = path.join(BASE_DIR, String(t.z), String(t.tx), `${t.ty}.webp`);
-    let base: sharp.Sharp;
-    try {
-      base = sharp(await fs.readFile(baseFile));
-    } catch {
-      continue; // base 없으면 스킵 (범위 밖)
-    }
+    const baseBuf = await storageDownload(`tiles/base/${t.z}/${t.tx}/${t.ty}.webp`);
+    if (!baseBuf) return; // base 없으면 스킵 (범위 밖)
+    const base = sharp(baseBuf);
     const meta0 = await base.metadata();
     const tileW = meta0.width ?? TILE;
     const tileH = meta0.height ?? TILE;
@@ -132,8 +128,6 @@ export async function recompositeTiles(
     }
 
     const out = await base.composite(overlays).webp({ quality: 82 }).toBuffer();
-    const dir = path.join(SERVE_DIR, String(t.z), String(t.tx));
-    await fs.mkdir(dir, { recursive: true });
-    await fs.writeFile(path.join(dir, `${t.ty}.webp`), out);
-  }
+    await storageUpload(`tiles/serve/${t.z}/${t.tx}/${t.ty}.webp`, out, "image/webp");
+  }));
 }

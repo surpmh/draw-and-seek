@@ -5,6 +5,7 @@ import { recompositeTiles, tilesForBbox } from "@/lib/composite";
 import { loadDrawingRects, type DrawingRow } from "@/lib/drawings-store";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // 타일 재합성(Storage 왕복 다수)이 기본 제한을 넘을 수 있음
 
 /** 클릭 허용 오차 (월드 px) — 손가락/저배율 배려 */
 const TOLERANCE = 12;

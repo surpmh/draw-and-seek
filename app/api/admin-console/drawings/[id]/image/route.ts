@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { getServiceClient } from "@/lib/supabase";
-import { DRAWINGS_DIR } from "@/lib/canvas-meta";
+import { loadDrawingPng } from "@/lib/drawings-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
@@ -24,15 +22,12 @@ export async function GET(
   const { data } = await db.from("drawings").select("image_path").eq("id", id).maybeSingle();
   if (!data) return new NextResponse("not found", { status: 404 });
 
-  try {
-    const buf = await fs.readFile(path.join(DRAWINGS_DIR, data.image_path));
-    return new NextResponse(new Uint8Array(buf), {
-      headers: {
-        "Content-Type": "image/png",
-        "Cache-Control": "private, no-store",
-      },
-    });
-  } catch {
-    return new NextResponse("not found", { status: 404 });
-  }
+  const buf = await loadDrawingPng(data.image_path);
+  if (!buf) return new NextResponse("not found", { status: 404 });
+  return new NextResponse(new Uint8Array(buf), {
+    headers: {
+      "Content-Type": "image/png",
+      "Cache-Control": "private, no-store",
+    },
+  });
 }

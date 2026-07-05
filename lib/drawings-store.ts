@@ -1,6 +1,4 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import { DRAWINGS_DIR } from "./canvas-meta";
+import { storageDownload, storageUpload } from "./storage";
 import type { DrawingRect } from "./composite";
 
 export interface DrawingRow {
@@ -12,22 +10,26 @@ export interface DrawingRow {
   image_path: string;
 }
 
+/** DB의 image_path(`{id}.png`) → Storage 키 */
+const drawingKey = (imagePath: string) => `drawings/${imagePath}`;
+
 export async function saveDrawingPng(id: string, buf: Buffer): Promise<string> {
-  await fs.mkdir(DRAWINGS_DIR, { recursive: true });
   const rel = `${id}.png`;
-  await fs.writeFile(path.join(DRAWINGS_DIR, rel), buf);
+  await storageUpload(drawingKey(rel), buf, "image/png");
   return rel;
 }
 
+export async function loadDrawingPng(imagePath: string): Promise<Buffer | null> {
+  return storageDownload(drawingKey(imagePath));
+}
+
 export async function loadDrawingRects(rows: DrawingRow[]): Promise<DrawingRect[]> {
-  const out: DrawingRect[] = [];
-  for (const r of rows) {
-    try {
-      const buf = await fs.readFile(path.join(DRAWINGS_DIR, r.image_path));
-      out.push({ id: r.id, buf, x: r.x, y: r.y, w: r.w, h: r.h });
-    } catch {
+  const loaded = await Promise.all(
+    rows.map(async (r) => {
+      const buf = await storageDownload(drawingKey(r.image_path));
       // 파일 누락 시 스킵 (그림 없이 합성)
-    }
-  }
-  return out;
+      return buf ? { id: r.id, buf, x: r.x, y: r.y, w: r.w, h: r.h } : null;
+    }),
+  );
+  return loaded.filter((d): d is DrawingRect => d !== null);
 }

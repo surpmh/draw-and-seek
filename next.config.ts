@@ -1,10 +1,6 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  // data/tiles는 public이 아니므로 서버 번들에 포함시킨다 (Vercel 배포 대비)
-  outputFileTracingIncludes: {
-    "/api/tiles/**": ["./data/tiles/**"],
-  },
-};
+// 타일·그림은 Supabase Storage에서 서빙하므로 로컬 파일 번들링 불필요
+const nextConfig: NextConfig = {};
 
 export default nextConfig;

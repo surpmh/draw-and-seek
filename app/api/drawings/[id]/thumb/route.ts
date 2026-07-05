@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
-import fs from "node:fs/promises";
-import path from "node:path";
 import { getServiceClient } from "@/lib/supabase";
-import { DRAWINGS_DIR } from "@/lib/canvas-meta";
+import { loadDrawingPng } from "@/lib/drawings-store";
 
 export const runtime = "nodejs";
 
@@ -23,19 +21,17 @@ export async function GET(
   // 관리자 제재 그림은 id를 알아도 서빙하지 않는다
   if (!data || data.removed_at) return new NextResponse("not found", { status: 404 });
 
-  try {
-    const buf = await fs.readFile(path.join(DRAWINGS_DIR, data.image_path));
-    const thumb = await sharp(buf)
-      .resize(96, 96, { fit: "inside", withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toBuffer();
-    return new NextResponse(new Uint8Array(thumb), {
-      headers: {
-        "Content-Type": "image/webp",
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
-  } catch {
-    return new NextResponse("not found", { status: 404 });
-  }
+  const buf = await loadDrawingPng(data.image_path);
+  if (!buf) return new NextResponse("not found", { status: 404 });
+
+  const thumb = await sharp(buf)
+    .resize(96, 96, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .toBuffer();
+  return new NextResponse(new Uint8Array(thumb), {
+    headers: {
+      "Content-Type": "image/webp",
+      "Cache-Control": "public, max-age=31536000, immutable",
+    },
+  });
 }

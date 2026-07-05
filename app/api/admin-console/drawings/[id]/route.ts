@@ -6,6 +6,7 @@ import { loadDrawingRects, type DrawingRow } from "@/lib/drawings-store";
 import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // 타일 재합성(Storage 왕복 다수)이 기본 제한을 넘을 수 있음
 
 /** 대상 그림 영역의 타일을 현재 미발견 그림 기준으로 재합성하고 버전을 올린다 */
 async function recompositeAndBump(
