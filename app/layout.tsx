@@ -5,9 +5,26 @@ import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
+const title = "Draw & Seek";
+const description = "그림을 그려 거대한 캔버스에 숨기고, 숨겨진 그림을 찾아보세요";
+
 export const metadata: Metadata = {
-  title: "Draw & Seek",
-  description: "그림을 그려 거대한 캔버스에 숨기고, 숨겨진 그림을 찾아보세요",
+  metadataBase: new URL("https://drawandseek.com"),
+  title,
+  description,
+  openGraph: {
+    title,
+    description,
+    url: "https://drawandseek.com",
+    siteName: title,
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export const viewport: Viewport = {
