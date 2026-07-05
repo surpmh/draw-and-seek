@@ -258,6 +258,8 @@ export function useDrawPad() {
       im.onload = () => {
         c.save();
         c.setTransform(1, 0, 0, 1, 0, 0);
+        // 지우개 사용 후엔 destination-out이 남아 있어 스냅샷이 그려지지 않는다 (undo가 전부 지우는 버그)
+        c.globalCompositeOperation = "source-over";
         c.drawImage(im, 0, 0);
         c.restore();
       };
