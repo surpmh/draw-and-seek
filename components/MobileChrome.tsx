@@ -231,8 +231,8 @@ export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; op
                 >
                   <img src={r.thumbnailUrl} alt="" style={{ maxWidth: 32, maxHeight: 32, objectFit: "contain" }} loading="lazy" />
                 </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.nickname}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}>{r.nickname}</div>
                 </div>
                 <div
                   style={{

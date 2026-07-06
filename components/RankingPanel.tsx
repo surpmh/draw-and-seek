@@ -69,7 +69,7 @@ export function RankingPanel({
         position: "fixed",
         right: 16,
         top: 68,
-        width: 272,
+        width: 288,
         zIndex: 34,
         background: "var(--surface)",
         backdropFilter: "blur(10px) saturate(1.5)",
@@ -119,8 +119,8 @@ export function RankingPanel({
             >
               <img src={r.thumbnailUrl} alt="" style={{ maxWidth: 26, maxHeight: 26, objectFit: "contain" }} loading="lazy" />
             </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, whiteSpace: "nowrap" }}>
                 {r.nickname}
               </div>
             </div>

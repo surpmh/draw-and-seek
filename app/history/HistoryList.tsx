@@ -408,7 +408,7 @@ export default function HistoryList() {
                     />
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <div style={{ fontSize: 14, fontWeight: 600, whiteSpace: "nowrap" }}>
                       {it.nickname}
                     </div>
                     <div style={{ fontSize: 11.5, color: "var(--text2)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
@@ -484,11 +484,9 @@ export default function HistoryList() {
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: 13.5,
+                      fontSize: 14,
                       fontWeight: 600,
                       whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
                     }}
                   >
                     {it.nickname}
