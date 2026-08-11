@@ -326,17 +326,18 @@ export default function HiddenCanvasApp() {
         return;
       }
       saveNickname(nick);
-      // 서버 상태 재조회 → version(타일 무효화)·remainCount·목록 동시 갱신
-      await refreshState();
+      // 저장 완료 → 즉시 성공 피드백. 서버는 응답 후 백그라운드로 타일을 재합성하므로
+      // 목록은 바로 갱신하고, 타일 무효화(version)는 폴링으로 따라잡는다.
       setPlacing(null);
       setSubmitting(false);
       padRef.current.reset();
       showToast(tRef.current.hideSuccess);
+      refreshUntilNewVersion();
     } catch (e) {
       showToast(tRef.current.networkError);
       setSubmitting(false);
     }
-  }, [placing, nickname, showToast, refreshState]);
+  }, [placing, nickname, showToast, refreshUntilNewVersion]);
 
   return (
     <div

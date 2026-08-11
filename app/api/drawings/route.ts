@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import sharp from "sharp";
 import { randomUUID } from "node:crypto";
 import { getServiceClient } from "@/lib/supabase";
@@ -156,18 +156,23 @@ export async function POST(req: Request) {
   });
   if (insErr) return new NextResponse(`DB 오류: ${insErr.message}`, { status: 500 });
 
-  // 영향 타일 재합성 (미발견 그림 전체 기준)
-  const { data: unfoundRows, error: selErr } = await db
-    .from("drawings")
-    .select("id, x, y, w, h, image_path")
-    .is("found_at", null);
-  if (selErr) return new NextResponse(`DB 오류: ${selErr.message}`, { status: 500 });
-  const unfound = await loadDrawingRects((unfoundRows ?? []) as DrawingRow[]);
-  await recompositeTiles(tilesForBbox(rect, meta), unfound, meta);
+  // 타일 재합성(Storage 왕복 다수, 수 초)은 응답 뒤로 미룬다 — 그림은 이미 DB에
+  // 기록됐고, 저장 응답이 재합성을 기다리면 사용자가 "저장이 느리다"고 느낀다.
+  // 버전 범프는 재합성 완료 후에만 수행해, 클라이언트가 새 버전을 보면 새 타일도
+  // 준비된 상태를 보장한다(클라이언트는 version이 바뀔 때까지 폴링).
+  after(async () => {
+    try {
+      const { data: unfoundRows } = await db
+        .from("drawings")
+        .select("id, x, y, w, h, image_path")
+        .is("found_at", null);
+      const unfound = await loadDrawingRects((unfoundRows ?? []) as DrawingRow[]);
+      await recompositeTiles(tilesForBbox(rect, meta), unfound, meta);
+      await db.rpc("bump_canvas_version");
+    } catch (e) {
+      console.error("post-upload recomposite failed:", e);
+    }
+  });
 
-  // 전역 버전 +1
-  const { data: version, error: verErr } = await db.rpc("bump_canvas_version");
-  if (verErr) return new NextResponse(`DB 오류: ${verErr.message}`, { status: 500 });
-
-  return NextResponse.json({ id, version: Number(version) });
+  return NextResponse.json({ id });
 }
