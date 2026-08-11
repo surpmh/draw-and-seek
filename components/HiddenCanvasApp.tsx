@@ -93,7 +93,8 @@ export default function HiddenCanvasApp() {
   const refreshState = useCallback(async (): Promise<number | null> => {
     try {
       const [c, list] = await Promise.all([
-        fetch("/api/canvas").then((r) => r.json()) as Promise<CanvasMeta>,
+        // version 폴링은 항상 신선해야 함 — 중간 캐시가 옛 version을 주면 갱신을 놓친다
+        fetch("/api/canvas", { cache: "no-store" }).then((r) => r.json()) as Promise<CanvasMeta>,
         fetch("/api/drawings", { headers: { "x-device-id": getDeviceId() } }).then((r) =>
           r.ok ? r.json() : [],
         ) as Promise<DrawingItem[]>,

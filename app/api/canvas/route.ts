@@ -4,11 +4,11 @@ import { readTilesetMeta, readCanvasStatus } from "@/lib/canvas-meta";
 export async function GET() {
   const meta = await readTilesetMeta();
   const { version, remainCount } = await readCanvasStatus();
-  // 전역 공유 엔드포인트(쿼리 없음) → 한 요청이 캐시를 데우면 모두가 엣지에서 즉답.
-  // version은 그리기/찾기 시 오르지만, 짧은 s-maxage + SWR로 폴링(1.5s 간격)이
-  // 새 version을 ~1~2s 내 따라잡으면서도 콜드스타트(≈1s) 왕복은 대부분 제거된다.
+  // version은 그리기/찾기 직후 클라이언트 폴링(refreshUntilNewVersion)이 즉시 감지해야
+  // 저장·발견한 그림이 새로고침 없이 화면에 반영된다. 캐싱하면 옛 version이 응답돼
+  // 폴링이 변경을 놓치므로 절대 캐시하지 않는다.
   return NextResponse.json(
     { ...meta, version, remainCount },
-    { headers: { "Cache-Control": "public, s-maxage=2, stale-while-revalidate=10" } },
+    { headers: { "Cache-Control": "no-store" } },
   );
 }
