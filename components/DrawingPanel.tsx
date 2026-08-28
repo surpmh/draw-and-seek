@@ -91,7 +91,7 @@ export const DrawingPanel = memo(function DrawingPanel({
   open: boolean;
   onToggle: () => void;
   onUpload: () => void;
-  /** 지도 축소판과 기본 배치 크기 비율 (sizeRatio = DEFAULT_LONG / 지도 폭) */
+  /** 지도 축소판과 기본 배치 크기 비율 (sizeRatio = MAX_LONG / 캔버스 폭) */
   minimap?: { url: string; sizeRatio: number };
 }) {
   const { t } = useI18n();

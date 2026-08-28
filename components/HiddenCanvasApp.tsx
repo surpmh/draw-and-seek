@@ -271,7 +271,6 @@ export default function HiddenCanvasApp() {
       const sideWorld = Math.round(Math.min(MAX_LONG, rawWorld));
       const w = sideWorld;
       const h = sideWorld;
-      const aspect = 1;
       // 월드 스케일: 정사각 export가 w×h로 배치되므로 균일 배율
       const scale = w / side;
       if (ink * scale * scale < MIN_INK_WORLD) {
@@ -281,7 +280,7 @@ export default function HiddenCanvasApp() {
 
       const c = viewportRef.current.centerWorld();
       const p = clampToCanvas(
-        { img: squareUrl, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h, aspect },
+        { img: squareUrl, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h },
         m,
       );
       setNickname(getLastNickname() || "Anonymous");
@@ -299,7 +298,7 @@ export default function HiddenCanvasApp() {
   const onResize = useCallback((long: number) => {
     setPlacing((p) => {
       if (!p || !metaRef.current) return p;
-      const { w, h } = sizeFromLong(long, p.aspect);
+      const { w, h } = sizeFromLong(long);
       return clampToCanvas({ ...p, w, h }, metaRef.current);
     });
   }, []);
@@ -334,7 +333,7 @@ export default function HiddenCanvasApp() {
       padRef.current.reset();
       showToast(tRef.current.hideSuccess);
       refreshUntilNewVersion();
-    } catch (e) {
+    } catch {
       showToast(tRef.current.networkError);
       setSubmitting(false);
     }

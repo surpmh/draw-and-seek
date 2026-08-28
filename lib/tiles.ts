@@ -1,5 +1,3 @@
-export const TILE_SIZE = 512;
-
 export interface CanvasMeta {
   width: number;
   height: number;
@@ -33,11 +31,11 @@ export function levelForScale(s: number, maxZoom: number): number {
 }
 
 /** 레벨 z의 픽셀 1개가 차지하는 월드 픽셀 수 */
-export function worldPerLevelPx(z: number, maxZoom: number): number {
+function worldPerLevelPx(z: number, maxZoom: number): number {
   return 2 ** (maxZoom - z);
 }
 
-export function tileCounts(meta: Pick<CanvasMeta, "width" | "height" | "tileSize">, f: number) {
+function tileCounts(meta: Pick<CanvasMeta, "width" | "height" | "tileSize">, f: number) {
   return {
     tilesX: Math.ceil(meta.width / (meta.tileSize * f)),
     tilesY: Math.ceil(meta.height / (meta.tileSize * f)),

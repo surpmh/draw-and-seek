@@ -6,8 +6,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  * 토큰은 무상태로 검증 가능 — 비밀번호를 바꾸면 기존 세션 전부 무효화된다.
  */
 
-export const ADMIN_COOKIE = "das_admin";
-export const ADMIN_SESSION_MAX_AGE = 12 * 3600; // 12시간
+const ADMIN_COOKIE = "das_admin";
+const ADMIN_SESSION_MAX_AGE = 12 * 3600; // 12시간
 
 function getPassword(): string {
   const pw = process.env.ADMIN_PASSWORD;

@@ -4,7 +4,7 @@ const KEY = "das_device_id";
 const NICK_KEY = "das_nickname";
 const EMPTY_KEY = "das_empty_dismissed";
 
-/** localStorage에 보관되는 익명 device UUID (Locate Me·레이트리밋용) */
+/** localStorage에 보관되는 익명 device UUID (내 그림 표시·레이트리밋용) */
 export function getDeviceId(): string {
   if (typeof window === "undefined") return "";
   let id = localStorage.getItem(KEY);

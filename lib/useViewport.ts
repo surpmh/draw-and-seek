@@ -4,9 +4,6 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { CanvasMeta, View } from "./tiles";
 
 const S_MAX = 3;
-/** 초기 진입·리셋 시 배율 하한 — 기본 뷰에서 숨은 그림이 못 알아볼 만큼 작아지지 않게 한다.
- * 수동 줌아웃은 이보다 더 내려가 전체 조망(cover)까지 가능 */
-const S_DEFAULT_MIN = 0.35;
 const ANIM_MS = 540;
 /** 제스처 중 상태(setState) 커밋 주기 — transform은 매 프레임 DOM에 직접 쓰고,
  * 리렌더가 필요한 타일 갱신만 이 간격으로 묶는다 (모바일에서 매 프레임 리렌더는 fps를 깎는다) */
