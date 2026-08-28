@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
 import { useIsMobile } from "@/lib/useIsMobile";
+import { ReportModal, type ReportTarget } from "@/components/ReportModal";
 
 interface HistoryItem {
   id: string;
@@ -37,6 +38,7 @@ export default function HistoryList() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
@@ -96,7 +98,19 @@ export default function HistoryList() {
     </button>
   );
 
-  const cols = "52px 56px 1fr 130px 150px 96px";
+  const cols = "52px 56px 1fr 130px 150px 96px 40px";
+
+  const reportButton = (it: HistoryItem, size: number) => (
+    <button
+      className="icon-btn"
+      onClick={() => setReportTarget({ id: it.id, nickname: it.nickname, thumbnailUrl: it.thumbnailUrl })}
+      title={t.report}
+      aria-label={t.report}
+      style={{ width: size, height: size, fontSize: 13, opacity: 0.55 }}
+    >
+      🚩
+    </button>
+  );
 
   return (
     <div
@@ -359,6 +373,7 @@ export default function HistoryList() {
             <div>{t.colHiddenDate}</div>
             <div>{t.colResult}</div>
             <div style={{ textAlign: "right" }}>{t.colDuration}</div>
+            <div />
           </div>
           )}
 
@@ -370,7 +385,7 @@ export default function HistoryList() {
                   key={it.id}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "30px 44px minmax(0, 1fr) auto",
+                    gridTemplateColumns: "30px 44px minmax(0, 1fr) auto 32px",
                     gap: 10,
                     alignItems: "center",
                     padding: "11px 12px",
@@ -435,6 +450,7 @@ export default function HistoryList() {
                       {it.found ? t.stFound : t.stHidden}
                     </span>
                   </div>
+                  {reportButton(it, 32)}
                 </div>
               );
             }
@@ -527,6 +543,7 @@ export default function HistoryList() {
                 >
                   {survivedLabel(it.survivedMs)}
                 </div>
+                <div style={{ display: "grid", placeItems: "center" }}>{reportButton(it, 30)}</div>
               </div>
             );
           })}
@@ -557,6 +574,8 @@ export default function HistoryList() {
           )}
         </section>
       </main>
+
+      <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />
     </div>
   );
 }

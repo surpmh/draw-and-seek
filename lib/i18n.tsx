@@ -26,6 +26,21 @@ export interface Dict {
   // ---- 사이드바 ----
   myDrawing: string;
 
+  // ---- 신고 ----
+  report: string;
+  reportTitle: string;
+  reportDesc: string;
+  reportReasonInappropriate: string;
+  reportReasonSexual: string;
+  reportReasonHate: string;
+  reportReasonOther: string;
+  reportSubmit: string;
+  reportSubmitting: string;
+  reportDone: string;
+  reportDoneDesc: string;
+  reportDuplicate: string;
+  reportTooMany: string;
+  reportFailed: string;
 
   // ---- 랭킹 ----
   rankingTitle: string;
@@ -89,7 +104,6 @@ export interface Dict {
   tip: string;
 
   // ---- 히스토리 ----
-  historyNav: string;
   hallOfFame: string;
   historyTitle: string;
   historySubtitle: string;
@@ -135,6 +149,20 @@ const ko: Dict = {
 
   myDrawing: "내 그림",
 
+  report: "신고",
+  reportTitle: "이 그림을 신고할까요?",
+  reportDesc: "신고 사유를 선택해주세요. 접수된 신고는 관리자가 검토합니다.",
+  reportReasonInappropriate: "부적절한 내용",
+  reportReasonSexual: "음란·선정성",
+  reportReasonHate: "혐오·욕설",
+  reportReasonOther: "기타",
+  reportSubmit: "신고하기",
+  reportSubmitting: "접수 중…",
+  reportDone: "신고가 접수되었습니다",
+  reportDoneDesc: "검토 후 조치할게요. 감사합니다!",
+  reportDuplicate: "이미 신고한 그림이에요",
+  reportTooMany: "신고가 너무 많아요. 잠시 후 다시 시도해주세요",
+  reportFailed: "신고에 실패했어요. 잠시 후 다시 시도해주세요",
 
   rankingTitle: "🏆 숨은 그림 Top 10",
   rankingPill: "랭킹",
@@ -210,7 +238,6 @@ const ko: Dict = {
   tipLabel: "💡 Tip",
   tip: "AI로 생성한 캔버스 특성상 일부 동물이나 사물의 형태가 다소 독특할 수 있습니다. 이러한 어색함도 숨은그림찾기의 재미로 즐겨 주시기 바랍니다.",
 
-  historyNav: "히스토리",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 역대 가장 오래 숨은 그림",
   historySubtitle: "발견되기까지 가장 오래 버텨 온 그림들. 아직 숨어있는 그림도 포함됩니다.",
@@ -256,6 +283,20 @@ const en: Dict = {
 
   myDrawing: "Mine",
 
+  report: "Report",
+  reportTitle: "Report this drawing?",
+  reportDesc: "Pick a reason. Our moderators will review your report.",
+  reportReasonInappropriate: "Inappropriate content",
+  reportReasonSexual: "Sexual content",
+  reportReasonHate: "Hate speech or abuse",
+  reportReasonOther: "Something else",
+  reportSubmit: "Report",
+  reportSubmitting: "Sending…",
+  reportDone: "Report received",
+  reportDoneDesc: "We'll review it shortly. Thanks!",
+  reportDuplicate: "You've already reported this drawing",
+  reportTooMany: "Too many reports. Please try again later",
+  reportFailed: "Couldn't send the report. Please try again",
 
   rankingTitle: "🏆 Hidden Drawings Top 10",
   rankingPill: "Ranking",
@@ -331,7 +372,6 @@ const en: Dict = {
   tipLabel: "💡 Tip",
   tip: "The canvas is AI-generated, so some animals and objects may look a little unusual. Consider the quirks part of the fun!",
 
-  historyNav: "History",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 Longest-Hidden Drawings of All Time",
   historySubtitle: "The drawings that survived the longest before being found. Still-hidden drawings are included.",
@@ -377,6 +417,20 @@ const ja: Dict = {
 
   myDrawing: "自分の絵",
 
+  report: "報告",
+  reportTitle: "この絵を報告しますか？",
+  reportDesc: "理由を選んでください。運営が内容を確認します。",
+  reportReasonInappropriate: "不適切な内容",
+  reportReasonSexual: "わいせつ・性的な内容",
+  reportReasonHate: "ヘイト・暴言",
+  reportReasonOther: "その他",
+  reportSubmit: "報告する",
+  reportSubmitting: "送信中…",
+  reportDone: "報告を受け付けました",
+  reportDoneDesc: "確認のうえ対応します。ありがとうございます！",
+  reportDuplicate: "すでに報告済みの絵です",
+  reportTooMany: "報告が多すぎます。しばらくしてからお試しください",
+  reportFailed: "報告に失敗しました。もう一度お試しください",
 
   rankingTitle: "🏆 隠れた絵 Top 10",
   rankingPill: "ランキング",
@@ -452,7 +506,6 @@ const ja: Dict = {
   tipLabel: "💡 Tip",
   tip: "AIで生成したキャンバスのため、一部の動物や物の形が少し独特な場合があります。その違和感もかくし絵探しの楽しみとしてお楽しみください。",
 
-  historyNav: "ヒストリー",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 歴代最長かくれんぼの絵",
   historySubtitle: "発見されるまで最も長く生き残った絵たち。まだ隠れている絵も含まれます。",
@@ -498,6 +551,20 @@ const zh: Dict = {
 
   myDrawing: "我的画",
 
+  report: "举报",
+  reportTitle: "要举报这幅画吗？",
+  reportDesc: "请选择举报理由，管理员会进行审核。",
+  reportReasonInappropriate: "内容不当",
+  reportReasonSexual: "色情低俗",
+  reportReasonHate: "仇恨或辱骂",
+  reportReasonOther: "其他",
+  reportSubmit: "提交举报",
+  reportSubmitting: "提交中…",
+  reportDone: "举报已提交",
+  reportDoneDesc: "我们会尽快审核，谢谢！",
+  reportDuplicate: "你已经举报过这幅画了",
+  reportTooMany: "举报次数过多，请稍后再试",
+  reportFailed: "举报失败，请稍后再试",
 
   rankingTitle: "🏆 隐藏绘画 Top 10",
   rankingPill: "排行榜",
@@ -573,7 +640,6 @@ const zh: Dict = {
   tipLabel: "💡 Tip",
   tip: "画布由 AI 生成，部分动物或物体的形态可能略显奇特。请把这些小瑕疵也当作找图游戏的乐趣！",
 
-  historyNav: "历史",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 历代隐藏最久的画",
   historySubtitle: "在被发现前坚持最久的画作，包括仍在隐藏中的画。",
@@ -619,6 +685,20 @@ const es: Dict = {
 
   myDrawing: "Mío",
 
+  report: "Denunciar",
+  reportTitle: "¿Denunciar este dibujo?",
+  reportDesc: "Elige un motivo. Nuestro equipo revisará la denuncia.",
+  reportReasonInappropriate: "Contenido inapropiado",
+  reportReasonSexual: "Contenido sexual",
+  reportReasonHate: "Odio o insultos",
+  reportReasonOther: "Otro motivo",
+  reportSubmit: "Denunciar",
+  reportSubmitting: "Enviando…",
+  reportDone: "Denuncia recibida",
+  reportDoneDesc: "La revisaremos pronto. ¡Gracias!",
+  reportDuplicate: "Ya has denunciado este dibujo",
+  reportTooMany: "Demasiadas denuncias. Inténtalo más tarde",
+  reportFailed: "No se pudo enviar la denuncia. Inténtalo de nuevo",
 
   rankingTitle: "🏆 Top 10 de dibujos ocultos",
   rankingPill: "Ranking",
@@ -694,7 +774,6 @@ const es: Dict = {
   tipLabel: "💡 Tip",
   tip: "El lienzo está generado por IA, así que algunos animales u objetos pueden verse algo peculiares. ¡Considera esas rarezas parte de la diversión!",
 
-  historyNav: "Historial",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 Los dibujos más tiempo escondidos",
   historySubtitle: "Los dibujos que más resistieron antes de ser encontrados. Incluye los que siguen ocultos.",
@@ -740,6 +819,20 @@ const fr: Dict = {
 
   myDrawing: "À moi",
 
+  report: "Signaler",
+  reportTitle: "Signaler ce dessin ?",
+  reportDesc: "Choisissez un motif. Notre équipe examinera le signalement.",
+  reportReasonInappropriate: "Contenu inapproprié",
+  reportReasonSexual: "Contenu sexuel",
+  reportReasonHate: "Haine ou insultes",
+  reportReasonOther: "Autre motif",
+  reportSubmit: "Signaler",
+  reportSubmitting: "Envoi…",
+  reportDone: "Signalement reçu",
+  reportDoneDesc: "Nous allons l'examiner. Merci !",
+  reportDuplicate: "Vous avez déjà signalé ce dessin",
+  reportTooMany: "Trop de signalements. Réessayez plus tard",
+  reportFailed: "Échec de l'envoi. Réessayez plus tard",
 
   rankingTitle: "🏆 Top 10 des dessins cachés",
   rankingPill: "Classement",
@@ -815,7 +908,6 @@ const fr: Dict = {
   tipLabel: "💡 Astuce",
   tip: "La toile est générée par IA : certains animaux ou objets peuvent sembler un peu étranges. Considérez ces bizarreries comme faisant partie du jeu !",
 
-  historyNav: "Historique",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 Les dessins cachés le plus longtemps",
   historySubtitle: "Les dessins qui ont résisté le plus longtemps avant d'être trouvés. Les dessins encore cachés sont inclus.",
@@ -861,6 +953,20 @@ const de: Dict = {
 
   myDrawing: "Meins",
 
+  report: "Melden",
+  reportTitle: "Dieses Bild melden?",
+  reportDesc: "Wähle einen Grund. Unser Team prüft die Meldung.",
+  reportReasonInappropriate: "Unangemessener Inhalt",
+  reportReasonSexual: "Sexueller Inhalt",
+  reportReasonHate: "Hass oder Beleidigung",
+  reportReasonOther: "Sonstiges",
+  reportSubmit: "Melden",
+  reportSubmitting: "Wird gesendet…",
+  reportDone: "Meldung eingegangen",
+  reportDoneDesc: "Wir prüfen sie in Kürze. Danke!",
+  reportDuplicate: "Du hast dieses Bild bereits gemeldet",
+  reportTooMany: "Zu viele Meldungen. Bitte später erneut versuchen",
+  reportFailed: "Melden fehlgeschlagen. Bitte erneut versuchen",
 
   rankingTitle: "🏆 Top 10 versteckte Bilder",
   rankingPill: "Rangliste",
@@ -936,7 +1042,6 @@ const de: Dict = {
   tipLabel: "💡 Tipp",
   tip: "Die Leinwand ist KI-generiert — manche Tiere oder Objekte sehen etwas eigenwillig aus. Betrachte diese Eigenheiten als Teil des Spaßes!",
 
-  historyNav: "Verlauf",
   hallOfFame: "Hall of Fame",
   historyTitle: "🏆 Die am längsten versteckten Bilder",
   historySubtitle: "Die Bilder, die am längsten durchgehalten haben. Noch versteckte Bilder sind enthalten.",

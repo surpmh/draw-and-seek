@@ -22,6 +22,28 @@ interface AdminDrawing {
   h: number;
 }
 
+/** 미처리 신고가 달린 그림 (status=reported) */
+interface ReportedDrawing extends AdminDrawing {
+  reportCount: number;
+  /** 사유 코드 → 건수 */
+  reasons: Record<string, number>;
+  lastReportedAt: string;
+}
+
+/** 신고 사유 코드(lib/report.ts) → 관리자 화면 표기 */
+const REASON_LABEL: Record<string, string> = {
+  inappropriate: "부적절",
+  sexual: "음란",
+  hate: "혐오",
+  other: "기타",
+};
+
+const reasonSummary = (reasons: Record<string, number>) =>
+  Object.entries(reasons)
+    .sort((a, b) => b[1] - a[1])
+    .map(([code, n]) => `${REASON_LABEL[code] ?? code} ${n}`)
+    .join(" · ");
+
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
   return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
@@ -38,6 +60,38 @@ const inputStyle: React.CSSProperties = {
   fontFamily: "inherit",
   padding: "0 14px",
   outline: "none",
+};
+
+/** 우측 슬라이드 패널(신고함·삭제함) 공용 컨테이너 — 헤더 아래를 꽉 채운다 */
+const panelStyle: React.CSSProperties = {
+  position: "absolute",
+  top: NAV_H,
+  right: 0,
+  bottom: 0,
+  width: 300,
+  zIndex: 15,
+  background: "var(--surface)",
+  backdropFilter: "blur(10px) saturate(1.5)",
+  WebkitBackdropFilter: "blur(10px) saturate(1.5)",
+  borderLeft: "1px solid var(--line)",
+  overflowY: "auto",
+  padding: 12,
+  display: "flex",
+  flexDirection: "column",
+  gap: 10,
+};
+
+/** 패널 안의 그림 카드 썸네일 */
+const panelThumbStyle: React.CSSProperties = {
+  width: 52,
+  height: 52,
+  borderRadius: 9,
+  background: "var(--canvas)",
+  border: "1px solid var(--line)",
+  display: "grid",
+  placeItems: "center",
+  overflow: "hidden",
+  flexShrink: 0,
 };
 
 const buttonStyle: React.CSSProperties = {
@@ -69,12 +123,16 @@ export default function AdminApp() {
   const [meta, setMeta] = useState<CanvasMeta | null>(null);
   const [hidden, setHidden] = useState<AdminDrawing[] | null>(null);
   const [removed, setRemoved] = useState<AdminDrawing[] | null>(null);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [reported, setReported] = useState<ReportedDrawing[] | null>(null);
+  const [reportsError, setReportsError] = useState("");
+  // 우측 패널은 한 번에 하나만 — 신고함과 삭제함이 같은 자리를 쓴다
+  const [panel, setPanel] = useState<"reported" | "removed" | null>(null);
   const [error, setError] = useState("");
   const [confirmTarget, setConfirmTarget] = useState<AdminDrawing | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [restoringId, setRestoringId] = useState<string | null>(null);
+  const [dismissingId, setDismissingId] = useState<string | null>(null);
 
   const viewport = useViewport(meta);
   const scale = viewport.view.s;
@@ -90,9 +148,10 @@ export default function AdminApp() {
   const loadAll = useCallback(async () => {
     setError("");
     try {
-      const [h, r] = await Promise.all([
+      const [h, r, rep] = await Promise.all([
         fetch(`${apiBase}/drawings?status=hidden`, { cache: "no-store" }),
         fetch(`${apiBase}/drawings?status=removed`, { cache: "no-store" }),
+        fetch(`${apiBase}/drawings?status=reported`, { cache: "no-store" }),
       ]);
       if (h.status === 401 || r.status === 401) {
         setAuthed(false);
@@ -102,6 +161,15 @@ export default function AdminApp() {
       if (!r.ok) throw new Error(await r.text());
       setHidden(await h.json());
       setRemoved(await r.json());
+      // 신고 목록은 실패해도 삭제·복구 기능까지 막지 않는다
+      // (reports 테이블 마이그레이션 전이면 여기만 실패한다 — supabase/reports.sql)
+      if (rep.ok) {
+        setReported(await rep.json());
+        setReportsError("");
+      } else {
+        setReported([]);
+        setReportsError(await rep.text());
+      }
       setAuthed(true);
     } catch (e) {
       setError((e as Error).message || "목록을 불러오지 못했습니다");
@@ -152,6 +220,7 @@ export default function AdminApp() {
     setAuthed(false);
     setHidden(null);
     setRemoved(null);
+    setReported(null);
   };
 
   const doDelete = async () => {
@@ -170,6 +239,7 @@ export default function AdminApp() {
       if (r.ok) applyVersion((await r.json()).version);
       const target = confirmTarget;
       setHidden((prev) => (prev ?? []).filter((d) => d.id !== target.id));
+      setReported((prev) => (prev ?? []).filter((d) => d.id !== target.id));
       setRemoved((prev) => [{ ...target, removedAt: new Date().toISOString() }, ...(prev ?? [])]);
       setConfirmTarget(null);
     } catch (e) {
@@ -192,11 +262,32 @@ export default function AdminApp() {
       if (!r.ok && r.status !== 409) throw new Error(await r.text());
       if (r.ok) applyVersion((await r.json()).version);
       setRemoved((prev) => (prev ?? []).filter((it) => it.id !== d.id));
+      setReported((prev) => (prev ?? []).filter((it) => it.id !== d.id));
       setHidden((prev) => [{ ...d, removedAt: null }, ...(prev ?? [])]);
     } catch (e) {
       setError((e as Error).message || "복구에 실패했습니다");
     } finally {
       setRestoringId(null);
+    }
+  };
+
+  /** 신고 반려 — "확인했고 문제없음". 그림은 그대로 두고 신고만 내린다 */
+  const doDismiss = async (d: ReportedDrawing) => {
+    if (dismissingId) return;
+    setDismissingId(d.id);
+    setError("");
+    try {
+      const r = await fetch(`${apiBase}/drawings/${d.id}/reports`, { method: "DELETE" });
+      if (r.status === 401) {
+        setAuthed(false);
+        return;
+      }
+      if (!r.ok) throw new Error(await r.text());
+      setReported((prev) => (prev ?? []).filter((it) => it.id !== d.id));
+    } catch (e) {
+      setError((e as Error).message || "신고 반려에 실패했습니다");
+    } finally {
+      setDismissingId(null);
     }
   };
 
@@ -261,11 +352,25 @@ export default function AdminApp() {
               새로고침
             </button>
             <button
-              onClick={() => setPanelOpen((v) => !v)}
+              onClick={() => setPanel((v) => (v === "reported" ? null : "reported"))}
               style={{
                 ...buttonStyle,
                 height: 32,
-                ...(panelOpen ? { background: "var(--accent)", color: "#fff", border: "none" } : {}),
+                ...(panel === "reported"
+                  ? { background: "#e5484d", color: "#fff", border: "none" }
+                  : reported?.length
+                    ? { borderColor: "#e5484d", color: "#e5484d" }
+                    : {}),
+              }}
+            >
+              🚩 신고 {reported?.length ?? 0}
+            </button>
+            <button
+              onClick={() => setPanel((v) => (v === "removed" ? null : "removed"))}
+              style={{
+                ...buttonStyle,
+                height: 32,
+                ...(panel === "removed" ? { background: "var(--accent)", color: "#fff", border: "none" } : {}),
               }}
             >
               삭제된 그림 {removed?.length ?? 0}
@@ -388,7 +493,7 @@ export default function AdminApp() {
         <div
           style={{
             position: "absolute",
-            right: panelOpen ? 316 : 16,
+            right: panel ? 316 : 16,
             bottom: 16,
             zIndex: 20,
             display: "flex",
@@ -435,27 +540,105 @@ export default function AdminApp() {
         </div>
       )}
 
+      {/* 신고된 그림 패널 — 삭제(제재) 또는 반려(문제없음) */}
+      {authed && panel === "reported" && (
+        <div style={panelStyle}>
+          {reportsError && (
+            <div
+              style={{
+                padding: 12,
+                borderRadius: 10,
+                border: "1px solid #e5484d",
+                color: "#e5484d",
+                fontSize: 11.5,
+                lineHeight: 1.6,
+              }}
+            >
+              신고 목록을 불러오지 못했습니다.
+              <div style={{ marginTop: 4, opacity: 0.85, wordBreak: "break-all" }}>{reportsError}</div>
+            </div>
+          )}
+          {!reportsError && reported?.length === 0 && (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--text2)", fontSize: 12.5 }}>
+              신고된 그림이 없습니다.
+            </div>
+          )}
+          {reported?.map((d) => (
+            <div
+              key={d.id}
+              style={{
+                background: "var(--solid)",
+                border: "1px solid color-mix(in oklab, #e5484d 35%, var(--line))",
+                borderRadius: 12,
+                padding: 10,
+                display: "flex",
+                flexDirection: "column",
+                gap: 9,
+              }}
+            >
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                <div style={panelThumbStyle}>
+                  <img
+                    src={imgUrl(d.id)}
+                    alt=""
+                    style={{ maxWidth: 46, maxHeight: 46, objectFit: "contain" }}
+                    loading="lazy"
+                  />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {d.nickname}
+                  </div>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#e5484d", marginTop: 3 }}>
+                    신고 {d.reportCount}건
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "var(--text2)", marginTop: 2 }}>
+                    {reasonSummary(d.reasons)}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: "var(--text2)", marginTop: 2 }}>
+                    최근 {fmtDate(d.lastReportedAt)}
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <button
+                  onClick={() => doDismiss(d)}
+                  disabled={dismissingId !== null}
+                  style={{
+                    ...buttonStyle,
+                    height: 30,
+                    fontSize: 11.5,
+                    color: "var(--text2)",
+                    opacity: dismissingId && dismissingId !== d.id ? 0.5 : 1,
+                  }}
+                >
+                  {dismissingId === d.id ? "처리 중…" : "문제없음"}
+                </button>
+                <button
+                  onClick={() => {
+                    setDeleteError("");
+                    setConfirmTarget(d);
+                  }}
+                  style={{
+                    ...buttonStyle,
+                    height: 30,
+                    fontSize: 11.5,
+                    border: "none",
+                    background: "#e5484d",
+                    color: "#fff",
+                  }}
+                >
+                  삭제
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* 삭제된 그림 패널 (복구) */}
-      {authed && panelOpen && (
-        <div
-          style={{
-            position: "absolute",
-            top: NAV_H,
-            right: 0,
-            bottom: 0,
-            width: 300,
-            zIndex: 15,
-            background: "var(--surface)",
-            backdropFilter: "blur(10px) saturate(1.5)",
-            WebkitBackdropFilter: "blur(10px) saturate(1.5)",
-            borderLeft: "1px solid var(--line)",
-            overflowY: "auto",
-            padding: 12,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
+      {authed && panel === "removed" && (
+        <div style={panelStyle}>
           {removed?.length === 0 && (
             <div style={{ padding: 40, textAlign: "center", color: "var(--text2)", fontSize: 12.5 }}>
               삭제된 그림이 없습니다.
@@ -474,19 +657,7 @@ export default function AdminApp() {
                 alignItems: "center",
               }}
             >
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 9,
-                  background: "var(--canvas)",
-                  border: "1px solid var(--line)",
-                  display: "grid",
-                  placeItems: "center",
-                  overflow: "hidden",
-                  flexShrink: 0,
-                }}
-              >
+              <div style={panelThumbStyle}>
                 <img
                   src={imgUrl(d.id)}
                   alt=""

@@ -74,6 +74,7 @@ export async function DELETE(
 /**
  * 관리자 전용: 삭제(제재) 복구.
  * 삭제 당시 캔버스에 있던 그림(found_at === removed_at)이면 다시 노출시킨다.
+ * 복구는 "문제없음" 판단이므로 이 그림에 달린 미처리 신고도 함께 반려한다.
  */
 export async function POST(
   req: Request,
@@ -100,6 +101,14 @@ export async function POST(
     .update({ removed_at: null, found_at: wasVisible ? null : row.found_at })
     .eq("id", id);
   if (updErr) return new NextResponse(`DB 오류: ${updErr.message}`, { status: 500 });
+
+  // 신고 반려 실패는 복구 자체를 되돌릴 이유가 아니다 — 신고함에 남아 다시 처리하면 된다
+  const { error: repErr } = await db
+    .from("reports")
+    .update({ dismissed_at: new Date().toISOString() })
+    .eq("drawing_id", id)
+    .is("dismissed_at", null);
+  if (repErr) console.error("복구 후 신고 반려 실패:", repErr.message);
 
   // 다시 캔버스에 노출되는 경우 타일에 그려 넣고 버전 갱신
   let version: number | null = null;
