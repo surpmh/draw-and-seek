@@ -11,8 +11,8 @@ import {
   sizeFromLong,
   clampToCanvas,
   MIN_INK_WORLD,
-  ALPHA_VISIBLE,
 } from "@/lib/placement";
+import { toInkSquare } from "@/lib/ink-square";
 import { getDeviceId, getLastNickname, saveNickname, isEmptyNoticeDismissed, dismissEmptyNotice } from "@/lib/device";
 import { CanvasViewport } from "./CanvasViewport";
 import { DrawingPanel } from "./DrawingPanel";
@@ -88,6 +88,9 @@ export default function HiddenCanvasApp() {
 
   const placingRef = useRef(placing);
   placingRef.current = placing;
+
+  /** 패드 export 원본 — 회전은 항상 여기서 다시 구워 누적 열화를 막는다 */
+  const srcImgRef = useRef<HTMLImageElement | null>(null);
 
   /** 서버 상태 동기화: canvas 메타(version → 타일 무효화) + 미발견 목록. 조회된 version 반환 */
   const refreshState = useCallback(async (): Promise<number | null> => {
@@ -224,46 +227,16 @@ export default function HiddenCanvasApp() {
     im.onload = () => {
       // 업로드 버튼 시점 사전 검증 — 서버와 같은 기준(알파>ALPHA_VISIBLE)으로 잉크량·실제 크기를 검사해
       // 배치 단계까지 갔다가 제출에서 거절당하는 헛걸음을 막는다 (서버 검증은 그대로 유지)
-      const cv = document.createElement("canvas");
-      cv.width = im.naturalWidth;
-      cv.height = im.naturalHeight;
-      const c2 = cv.getContext("2d");
-      if (!c2) return;
-      c2.drawImage(im, 0, 0);
-      const px = c2.getImageData(0, 0, cv.width, cv.height).data;
-      let ink = 0, minX = cv.width, minY = cv.height, maxX = -1, maxY = -1;
-      for (let y = 0; y < cv.height; y++) {
-        for (let x = 0; x < cv.width; x++) {
-          if (px[(y * cv.width + x) * 4 + 3] > ALPHA_VISIBLE) {
-            ink++;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-          }
-        }
-      }
-      if (maxX < 0) {
+      const sq = toInkSquare(im, im.naturalWidth, im.naturalHeight);
+      if (!sq) {
         showToast(tRef.current.drawFirst);
         return;
       }
 
-      // 잉크 영역만 잘라 정사각 캔버스 중앙에 배치 — 배치 프레임(정사각)에 왜곡 없이 들어간다
-      const bw = maxX - minX + 1;
-      const bh = maxY - minY + 1;
-      const side = Math.max(bw, bh);
-      const sq = document.createElement("canvas");
-      sq.width = side;
-      sq.height = side;
-      const sqc = sq.getContext("2d");
-      if (!sqc) return;
-      sqc.drawImage(cv, minX, minY, bw, bh, Math.round((side - bw) / 2), Math.round((side - bh) / 2), bw, bh);
-      const squareUrl = sq.toDataURL("image/png");
-
       // WYSIWYG: 패드 전체 = 캔버스의 MAX_LONG. 패드에 그린 비율 그대로 캔버스 크기가 된다
       // (im.naturalWidth = 패드 버퍼 크기(정사각) → 잉크 긴 변 × (MAX_LONG/패드) = 월드 크기)
       // 최소 미달이면 확대하지 않고 반려 — 점 하나가 뻥튀기되어 올라가는 것을 막는다
-      const rawWorld = side * (MAX_LONG / im.naturalWidth);
+      const rawWorld = sq.side * (MAX_LONG / im.naturalWidth);
       if (rawWorld < MIN_LONG) {
         showToast(tRef.current.tooSmall);
         return;
@@ -272,15 +245,17 @@ export default function HiddenCanvasApp() {
       const w = sideWorld;
       const h = sideWorld;
       // 월드 스케일: 정사각 export가 w×h로 배치되므로 균일 배율
-      const scale = w / side;
-      if (ink * scale * scale < MIN_INK_WORLD) {
+      const scale = w / sq.side;
+      if (sq.ink * scale * scale < MIN_INK_WORLD) {
         showToast(tRef.current.tooFaint);
         return;
       }
 
+      srcImgRef.current = im;
+
       const c = viewportRef.current.centerWorld();
       const p = clampToCanvas(
-        { img: squareUrl, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h },
+        { img: sq.url, x: Math.round(c.x - w / 2), y: Math.round(c.y - h / 2), w, h, rotation: 0 },
         m,
       );
       setNickname(getLastNickname() || "Anonymous");
@@ -301,6 +276,31 @@ export default function HiddenCanvasApp() {
       const { w, h } = sizeFromLong(long);
       return clampToCanvas({ ...p, w, h }, metaRef.current);
     });
+  }, []);
+
+  // 회전은 원본을 매번 다시 굽는다 — 슬라이더를 끄는 동안 매 입력마다 돌리면
+  // 1M 픽셀 스캔이 반복되므로 프레임당 한 번으로 제한한다.
+  const rotateRaf = useRef<number | null>(null);
+  const pendingDeg = useRef(0);
+
+  const onRotate = useCallback((deg: number) => {
+    pendingDeg.current = deg;
+    if (rotateRaf.current !== null) return;
+    rotateRaf.current = requestAnimationFrame(() => {
+      rotateRaf.current = null;
+      const src = srcImgRef.current;
+      const m = metaRef.current;
+      if (!src || !m) return;
+      const d = pendingDeg.current;
+      const sq = toInkSquare(src, src.naturalWidth, src.naturalHeight, d);
+      if (!sq) return;
+      // 프레임 크기(w·h)는 그대로 둔다 — 회전은 방향만 바꾸고, 크기는 크기 슬라이더가 정한다
+      setPlacing((p) => (p ? clampToCanvas({ ...p, img: sq.url, rotation: d }, m) : p));
+    });
+  }, []);
+
+  useEffect(() => () => {
+    if (rotateRaf.current !== null) cancelAnimationFrame(rotateRaf.current);
   }, []);
 
   const onCancelPlace = useCallback(() => {
@@ -552,6 +552,7 @@ export default function HiddenCanvasApp() {
           nickname={nickname}
           onNickname={setNickname}
           onResize={onResize}
+          onRotate={onRotate}
           onComplete={onCompletePlace}
           onCancel={onCancelPlace}
           submitting={submitting}

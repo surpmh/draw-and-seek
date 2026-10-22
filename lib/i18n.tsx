@@ -78,6 +78,8 @@ export interface Dict {
   nickname: string;
   nicknamePlaceholder: string;
   size: string;
+  rotation: string;
+  rotationReset: string;
   cancel: string;
   complete: string;
   submitting: string;
@@ -196,6 +198,8 @@ const ko: Dict = {
   nickname: "닉네임",
   nicknamePlaceholder: "숨긴 사람 이름",
   size: "크기",
+  rotation: "회전",
+  rotationReset: "회전 초기화",
   cancel: "취소",
   complete: "Complete",
   submitting: "숨기는 중…",
@@ -330,6 +334,8 @@ const en: Dict = {
   nickname: "Nickname",
   nicknamePlaceholder: "Your name",
   size: "Size",
+  rotation: "Angle",
+  rotationReset: "Reset rotation",
   cancel: "Cancel",
   complete: "Complete",
   submitting: "Hiding…",
@@ -464,6 +470,8 @@ const ja: Dict = {
   nickname: "ニックネーム",
   nicknamePlaceholder: "あなたの名前",
   size: "サイズ",
+  rotation: "回転",
+  rotationReset: "回転をリセット",
   cancel: "キャンセル",
   complete: "Complete",
   submitting: "隠しています…",
@@ -598,6 +606,8 @@ const zh: Dict = {
   nickname: "昵称",
   nicknamePlaceholder: "你的名字",
   size: "大小",
+  rotation: "旋转",
+  rotationReset: "重置旋转",
   cancel: "取消",
   complete: "Complete",
   submitting: "隐藏中…",
@@ -732,6 +742,8 @@ const es: Dict = {
   nickname: "Apodo",
   nicknamePlaceholder: "Tu nombre",
   size: "Tamaño",
+  rotation: "Ángulo",
+  rotationReset: "Restablecer giro",
   cancel: "Cancelar",
   complete: "Complete",
   submitting: "Escondiendo…",
@@ -866,6 +878,8 @@ const fr: Dict = {
   nickname: "Pseudo",
   nicknamePlaceholder: "Votre nom",
   size: "Taille",
+  rotation: "Angle",
+  rotationReset: "Réinitialiser la rotation",
   cancel: "Annuler",
   complete: "Complete",
   submitting: "En cours…",
@@ -1000,6 +1014,8 @@ const de: Dict = {
   nickname: "Spitzname",
   nicknamePlaceholder: "Dein Name",
   size: "Größe",
+  rotation: "Winkel",
+  rotationReset: "Drehung zurücksetzen",
   cancel: "Abbrechen",
   complete: "Complete",
   submitting: "Wird versteckt…",

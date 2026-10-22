@@ -12,12 +12,21 @@ export const MIN_INK_WORLD = 30;
 export const ALPHA_VISIBLE = 32;
 
 export interface Placing {
-  img: string; // data URL (투명 PNG)
+  img: string; // data URL (투명 PNG) — 회전이 이미 반영된 결과물
   x: number; // 월드 좌표 (좌상단)
   y: number;
   w: number;
   h: number;
+  /**
+   * 시계방향 회전각(도). 미리보기 이미지에 이미 구워져 있으므로 서버로 보내지 않는다.
+   * 슬라이더 값을 유지하고 원본에서 다시 굽기 위해서만 들고 있는다.
+   */
+  rotation: number;
 }
+
+/** 회전 슬라이더 범위 (도) */
+export const MIN_ROTATION = -180;
+export const MAX_ROTATION = 180;
 
 /** 슬라이더 값에 맞춰 정사각 한 변 재계산 */
 export function sizeFromLong(long: number): { w: number; h: number } {
