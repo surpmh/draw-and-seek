@@ -1,0 +1,9 @@
+# 상태 파일에는 프로젝트 설정 전체가 평문으로 들어간다 — 절대 커밋하지 않는다
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl.bak
+
+# 변수 파일에 토큰을 적지 말 것 (환경변수 TF_VAR_access_token 사용). 실수 대비 무시.
+*.tfvars
+*.tfvars.json
