@@ -1,5 +1,7 @@
 -- 사용자 신고 (부적절한 그림 제보)
--- 적용: Supabase 대시보드 → SQL Editor 에 붙여넣고 Run
+-- 적용:
+--   로컬 — `npm run db:reset` (supabase CLI가 이 폴더의 마이그레이션을 순서대로 실행)
+--   운영 — Supabase 대시보드 → SQL Editor 에 붙여넣고 Run
 --
 -- 기기(device)당 그림 하나에 1회만 — PK가 중복 신고를 DB 레벨에서 막는다.
 -- 관리자가 "문제없음"으로 판단하면 dismissed_at을 채워 신고함에서 내린다

@@ -162,7 +162,7 @@ export default function AdminApp() {
       setHidden(await h.json());
       setRemoved(await r.json());
       // 신고 목록은 실패해도 삭제·복구 기능까지 막지 않는다
-      // (reports 테이블 마이그레이션 전이면 여기만 실패한다 — supabase/reports.sql)
+      // (reports 테이블 마이그레이션 전이면 여기만 실패한다 — supabase/migrations/20260828160757_reports.sql)
       if (rep.ok) {
         setReported(await rep.json());
         setReportsError("");

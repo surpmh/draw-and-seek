@@ -1,5 +1,7 @@
 -- Draw & Seek 스키마
--- 적용: Supabase 대시보드 → SQL Editor 에 붙여넣고 Run
+-- 적용:
+--   로컬 — `npm run db:reset` (supabase CLI가 이 폴더의 마이그레이션을 순서대로 실행)
+--   운영 — Supabase 대시보드 → SQL Editor 에 붙여넣고 Run
 -- (클라이언트는 이 테이블에 직접 접근하지 않음 — 모든 접근은 서버 API 라우트가 service_role로 수행)
 
 -- 캔버스 메타 (단일 행). 그림 숨김/발견마다 version +1 → 모든 타일 URL 무효화.
