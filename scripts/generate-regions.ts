@@ -16,7 +16,9 @@ import { config } from "dotenv";
 import fs from "node:fs/promises";
 import path from "node:path";
 
-config({ path: ".env.local" });
+// 기본은 로컬 개발 DB(.env.local). 프로덕션을 건드리려면 반드시 명시해야 한다:
+//   ENV_FILE=.env.prod.local npm run <script>
+config({ path: process.env.ENV_FILE ?? ".env.local" });
 
 const KEY = process.env.POLLINATIONS_API_KEY;
 const OUT_DIR = path.join(process.cwd(), "data", "regions");

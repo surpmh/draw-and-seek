@@ -2,7 +2,8 @@
  * Supabase 연결 + 스키마 검증, 그리고 canvas 단일 행을 시드한다.
  *   npm run check-db
  *
- * schema.sql을 먼저 Supabase SQL Editor에서 실행한 상태여야 한다.
+ * 마이그레이션(supabase/migrations/)이 적용된 상태여야 한다.
+ * 로컬은 `npm run db:reset`, 운영은 SQL Editor에 붙여넣어 실행.
  */
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
@@ -10,7 +11,9 @@ import fs from "node:fs/promises";
 import path from "node:path";
 
 // Next.js와 동일하게 .env.local 우선 로드
-config({ path: ".env.local" });
+// 기본은 로컬 개발 DB(.env.local). 프로덕션을 건드리려면 반드시 명시해야 한다:
+//   ENV_FILE=.env.prod.local npm run <script>
+config({ path: process.env.ENV_FILE ?? ".env.local" });
 
 async function main() {
   const url = process.env.SUPABASE_URL;
@@ -26,7 +29,7 @@ async function main() {
     const { error } = await db.from(t).select("*", { count: "exact", head: true });
     if (error) {
       console.error(`✗ 테이블 '${t}' 접근 실패: ${error.message}`);
-      console.error("  → supabase/schema.sql을 SQL Editor에서 먼저 실행했는지 확인하세요");
+      console.error("  → 마이그레이션이 적용됐는지 확인하세요 (로컬: npm run db:reset / 운영: SQL Editor)");
       process.exit(1);
     }
     console.log(`✓ 테이블 '${t}' 확인`);
