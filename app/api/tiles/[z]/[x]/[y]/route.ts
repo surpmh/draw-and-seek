@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { readTilesetMeta } from "@/lib/canvas-meta";
-import { storageDownload } from "@/lib/storage";
+import { storageDownloadFresh } from "@/lib/storage";
 
 export const runtime = "nodejs";
 
@@ -28,7 +28,9 @@ export async function GET(
     return new NextResponse("tile out of range", { status: 404 });
   }
 
-  const buf = await storageDownload(`tiles/serve/${zi}/${xi}/${yi}.webp`);
+  // 서빙본은 재합성 때마다 같은 키로 덮어쓴다. CDN 캐시본(옛 타일)을 받으면 그게
+  // 새 ?v= 아래 immutable로 굳어 다음 버전까지 그림이 안 보이므로 반드시 원본을 읽는다.
+  const buf = await storageDownloadFresh(`tiles/serve/${zi}/${xi}/${yi}.webp`);
   if (!buf) return new NextResponse("tile not found", { status: 404 });
   return new NextResponse(new Uint8Array(buf), {
     headers: {

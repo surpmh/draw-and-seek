@@ -20,6 +20,19 @@ export async function storageDownload(key: string): Promise<Buffer | null> {
   return Buffer.from(await data.arrayBuffer());
 }
 
+/**
+ * CDN 캐시를 거치지 않고 원본을 읽는다 — 덮어쓰는 키(tiles/serve/) 전용.
+ * 일반 download()는 Supabase CDN이 경로 기준으로 캐시해(max-age=3600, 쿼리 무시)
+ * 덮어쓴 직후 옛 내용을 줄 수 있다. 서명 URL은 토큰마다 캐시 키가 달라 항상 MISS.
+ */
+export async function storageDownloadFresh(key: string): Promise<Buffer | null> {
+  const { data, error } = await getServiceClient().storage.from(BUCKET).createSignedUrl(key, 60);
+  if (error || !data) return null;
+  const res = await fetch(data.signedUrl, { cache: "no-store" });
+  if (!res.ok) return null;
+  return Buffer.from(await res.arrayBuffer());
+}
+
 export async function storageUpload(key: string, buf: Buffer, contentType: string): Promise<void> {
   const { error } = await getServiceClient()
     .storage.from(BUCKET)
