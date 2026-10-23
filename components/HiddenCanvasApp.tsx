@@ -278,7 +278,7 @@ export default function HiddenCanvasApp() {
     });
   }, []);
 
-  // 회전은 원본을 매번 다시 굽는다 — 슬라이더를 끄는 동안 매 입력마다 돌리면
+  // 회전은 원본을 매번 다시 굽는다 — 핸들을 돌리는 동안 매 입력마다 돌리면
   // 1M 픽셀 스캔이 반복되므로 프레임당 한 번으로 제한한다.
   const rotateRaf = useRef<number | null>(null);
   const pendingDeg = useRef(0);
@@ -358,7 +358,7 @@ export default function HiddenCanvasApp() {
       {meta ? (
         <CanvasViewport meta={meta} viewport={viewport} topInset={fs || isMobile ? 0 : 56}>
           {placing && (
-            <PlacementOverlay placing={placing} scale={viewport.view.s} onMove={onMove} />
+            <PlacementOverlay placing={placing} scale={viewport.view.s} onMove={onMove} onRotate={onRotate} />
           )}
         </CanvasViewport>
       ) : (
@@ -552,7 +552,6 @@ export default function HiddenCanvasApp() {
           nickname={nickname}
           onNickname={setNickname}
           onResize={onResize}
-          onRotate={onRotate}
           onComplete={onCompletePlace}
           onCancel={onCancelPlace}
           submitting={submitting}

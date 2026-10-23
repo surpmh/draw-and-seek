@@ -3,10 +3,11 @@
 import { useI18n } from "@/lib/i18n";
 
 import type { Placing } from "@/lib/placement";
-import { MIN_LONG, MAX_LONG, MIN_ROTATION, MAX_ROTATION, longSide } from "@/lib/placement";
+import { MIN_LONG, MAX_LONG, longSide } from "@/lib/placement";
 
 /**
- * 업로드 STEP 2: 닉네임 입력 + 크기·회전 슬라이더 + 배치 완료/취소.
+ * 업로드 STEP 2: 닉네임 입력 + 크기 슬라이더 + 배치 완료/취소.
+ * (회전은 캔버스 위 PlacementOverlay의 핸들로 한다)
  * 화면 상단 고정 카드.
  */
 export function PlacementStepper({
@@ -14,7 +15,6 @@ export function PlacementStepper({
   nickname,
   onNickname,
   onResize,
-  onRotate,
   onComplete,
   onCancel,
   submitting,
@@ -23,7 +23,6 @@ export function PlacementStepper({
   nickname: string;
   onNickname: (v: string) => void;
   onResize: (long: number) => void;
-  onRotate: (deg: number) => void;
   onComplete: () => void;
   onCancel: () => void;
   submitting: boolean;
@@ -94,8 +93,8 @@ export function PlacementStepper({
       />
 
       {/* 크기 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-        <span style={{ fontSize: 11, color: "var(--text2)", flexShrink: 0, minWidth: 28 }}>{t.size}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <span style={{ fontSize: 11, color: "var(--text2)", flexShrink: 0 }}>{t.size}</span>
         <input
           type="range"
           min={MIN_LONG}
@@ -107,39 +106,6 @@ export function PlacementStepper({
         <span style={{ fontSize: 11, color: "var(--text2)", width: 54, textAlign: "right", flexShrink: 0 }}>
           {placing.w}×{placing.h}
         </span>
-      </div>
-
-      {/* 회전 — 0°로 되돌리려면 각도 표시를 누른다 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <span style={{ fontSize: 11, color: "var(--text2)", flexShrink: 0, minWidth: 28 }}>{t.rotation}</span>
-        <input
-          type="range"
-          min={MIN_ROTATION}
-          max={MAX_ROTATION}
-          value={placing.rotation}
-          onChange={(e) => onRotate(+e.target.value)}
-          style={{ flex: 1, accentColor: "var(--accent)", height: 22 }}
-        />
-        <button
-          onClick={() => onRotate(0)}
-          disabled={placing.rotation === 0}
-          title={t.rotationReset}
-          style={{
-            width: 54,
-            textAlign: "right",
-            flexShrink: 0,
-            border: "none",
-            background: "transparent",
-            padding: 0,
-            fontSize: 11,
-            fontFamily: "inherit",
-            color: placing.rotation === 0 ? "var(--text2)" : "var(--accent)",
-            fontWeight: placing.rotation === 0 ? 400 : 700,
-            cursor: placing.rotation === 0 ? "default" : "pointer",
-          }}
-        >
-          {placing.rotation}°
-        </button>
       </div>
 
       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
