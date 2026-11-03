@@ -8,6 +8,7 @@ import { ReportModal, type ReportTarget } from "@/components/ReportModal";
 
 interface HistoryItem {
   id: string;
+  rank: number; // 전체 기준 순위 (검색·필터와 무관)
   nickname: string;
   found: boolean;
   hiddenAt: string;
@@ -18,6 +19,12 @@ interface HistoryItem {
 
 type Filter = "all" | "hidden" | "found";
 
+interface HistoryPage {
+  total: number;
+  page: number;
+  pageSize: number;
+  items: HistoryItem[];
+}
 
 const fmtDate = (iso: string) => {
   const d = new Date(iso);
@@ -34,9 +41,12 @@ export default function HistoryList() {
   const { t } = useI18n();
   // 모바일: 포디움·타이틀 없이 검색 + 리스트만, 행은 컴팩트 레이아웃
   const isMobile = useIsMobile();
-  const [items, setItems] = useState<HistoryItem[] | null>(null);
+  const [data, setData] = useState<HistoryPage | null>(null);
+  const [podium, setPodium] = useState<HistoryItem[]>([]);
+  const [page, setPage] = useState(1);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [query, setQuery] = useState("");
+  const [debouncedQ, setDebouncedQ] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [reportTarget, setReportTarget] = useState<ReportTarget | null>(null);
 
@@ -48,12 +58,36 @@ export default function HistoryList() {
     return () => mq.removeEventListener("change", apply);
   }, []);
 
+  // 타이핑마다 요청하지 않도록 검색어 디바운스, 검색어·필터가 바뀌면 1페이지로
   useEffect(() => {
-    fetch("/api/history")
-      .then((r) => (r.ok ? r.json() : []))
-      .then(setItems)
-      .catch(() => setItems([]));
-  }, []);
+    const next = query.trim();
+    if (next === debouncedQ) return;
+    const id = setTimeout(() => {
+      setDebouncedQ(next);
+      setPage(1);
+    }, 250);
+    return () => clearTimeout(id);
+  }, [query, debouncedQ]);
+
+  useEffect(() => {
+    const ac = new AbortController();
+    const params = new URLSearchParams({ page: String(page), filter });
+    if (debouncedQ) params.set("q", debouncedQ);
+    fetch(`/api/history?${params}`, { signal: ac.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((d: HistoryPage) => {
+        // 페이지 이동 중 데이터가 줄어 범위를 벗어나면 마지막 페이지로
+        const last = Math.max(1, Math.ceil(d.total / d.pageSize));
+        if (page > last) return setPage(last);
+        setData(d);
+        // 포디움은 전체 Top 3 — 필터 없는 1페이지 응답에서만 갱신
+        if (page === 1 && !debouncedQ && filter === "all") setPodium(d.items.slice(0, 3));
+      })
+      .catch(() => {
+        if (!ac.signal.aborted) setData({ total: 0, page: 1, pageSize: 10, items: [] });
+      });
+    return () => ac.abort();
+  }, [page, debouncedQ, filter]);
 
   // 숨은 시간 표기 (언어별)
   const survivedLabel = (ms: number) => {
@@ -65,21 +99,21 @@ export default function HistoryList() {
     return t.durUnderHour;
   };
 
-  const q = query.trim().toLowerCase();
-  // 순위는 전체 기준으로 매긴 뒤 필터 (검색·필터해도 원래 순위 유지)
-  const ranked = (items ?? []).map((it, i) => ({ it, rank: i + 1 }));
-  const rows = ranked.filter(({ it }) => {
-    if (q && !it.nickname.toLowerCase().includes(q)) return false;
-    if (filter === "hidden" && it.found) return false;
-    if (filter === "found" && !it.found) return false;
-    return true;
-  });
-  const podium = ranked.slice(0, 3);
+  const q = query.trim();
+  const rows = (data?.items ?? []).map((it) => ({ it, rank: it.rank }));
+  const total = data?.total ?? 0;
+  const lastPage = data ? Math.max(1, Math.ceil(total / data.pageSize)) : 1;
+  // 현재 페이지 주변 최대 5개 번호
+  const pageStart = Math.max(1, Math.min(page - 2, lastPage - 4));
+  const pageNums = Array.from({ length: Math.min(5, lastPage) }, (_, i) => pageStart + i);
 
   const chip = (key: Filter, label: string) => (
     <button
       key={key}
-      onClick={() => setFilter(key)}
+      onClick={() => {
+        setFilter(key);
+        setPage(1);
+      }}
       style={{
         height: 42,
         padding: "0 16px",
@@ -91,6 +125,34 @@ export default function HistoryList() {
         fontWeight: 600,
         fontFamily: "inherit",
         cursor: "pointer",
+        transition: "all .2s",
+      }}
+    >
+      {label}
+    </button>
+  );
+
+  const pageButton = (target: number, label: string, disabled: boolean, aria?: string, active = false) => (
+    <button
+      key={aria ?? target}
+      onClick={() => setPage(target)}
+      disabled={disabled || active}
+      aria-label={aria}
+      aria-current={active ? "page" : undefined}
+      style={{
+        minWidth: 36,
+        height: 36,
+        padding: "0 10px",
+        borderRadius: 10,
+        border: `1px solid ${active ? "var(--accent)" : "var(--line)"}`,
+        background: active ? "color-mix(in oklab, var(--accent) 14%, transparent)" : "var(--surface)",
+        color: active ? "var(--accent)" : "var(--text2)",
+        fontSize: 13,
+        fontWeight: 700,
+        fontFamily: "inherit",
+        fontVariantNumeric: "tabular-nums",
+        cursor: disabled || active ? "default" : "pointer",
+        opacity: disabled ? 0.4 : 1,
         transition: "all .2s",
       }}
     >
@@ -203,7 +265,7 @@ export default function HistoryList() {
               marginBottom: 28,
             }}
           >
-            {podium.map(({ it }, i) => {
+            {podium.map((it, i) => {
               const m = MEDALS[i];
               return (
                 <div
@@ -335,7 +397,7 @@ export default function HistoryList() {
 
         {/* 결과 수 */}
         <div style={{ fontSize: 12, color: "var(--text2)", marginBottom: 10, paddingLeft: 4 }}>
-          {items === null ? "…" : q ? t.searchResults(query.trim(), rows.length) : t.totalRecords(rows.length)}
+          {data === null ? "…" : debouncedQ ? t.searchResults(debouncedQ, total) : t.totalRecords(total)}
         </div>
 
         {/* 목록 */}
@@ -548,7 +610,7 @@ export default function HistoryList() {
             );
           })}
 
-          {items !== null && rows.length === 0 && (
+          {data !== null && rows.length === 0 && (
             <div style={{ padding: "56px 20px", textAlign: "center" }}>
               <div
                 style={{
@@ -565,14 +627,26 @@ export default function HistoryList() {
                 🔍
               </div>
               <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>
-                {q ? t.noResultsTitle : t.noRecordsTitle}
+                {debouncedQ ? t.noResultsTitle : t.noRecordsTitle}
               </div>
               <div style={{ fontSize: 12.5, color: "var(--text2)" }}>
-                {q ? t.noResultsDesc(query.trim()) : t.noRecordsDesc}
+                {debouncedQ ? t.noResultsDesc(debouncedQ) : t.noRecordsDesc}
               </div>
             </div>
           )}
         </section>
+
+        {/* 페이지네이션 */}
+        {lastPage > 1 && (
+          <nav
+            aria-label={t.pagination}
+            style={{ display: "flex", justifyContent: "center", gap: 6, marginTop: 16 }}
+          >
+            {pageButton(page - 1, "‹", page === 1, t.prevPage)}
+            {pageNums.map((n) => pageButton(n, String(n), false, undefined, n === page))}
+            {pageButton(page + 1, "›", page === lastPage, t.nextPage)}
+          </nav>
+        )}
       </main>
 
       <ReportModal target={reportTarget} onClose={() => setReportTarget(null)} />

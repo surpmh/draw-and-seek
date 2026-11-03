@@ -129,6 +129,9 @@ export interface Dict {
   noResultsDesc: (q: string) => string;
   noRecordsTitle: string;
   noRecordsDesc: string;
+  pagination: string;
+  prevPage: string;
+  nextPage: string;
 }
 
 const ko: Dict = {
@@ -264,6 +267,9 @@ const ko: Dict = {
   noResultsDesc: (q) => `"${q}" 닉네임으로 숨긴 그림을 찾지 못했습니다`,
   noRecordsTitle: "아직 기록이 없습니다",
   noRecordsDesc: "첫 번째 기록의 주인공이 되어 보시기 바랍니다",
+  pagination: "페이지",
+  prevPage: "이전 페이지",
+  nextPage: "다음 페이지",
 };
 
 const en: Dict = {
@@ -399,6 +405,9 @@ const en: Dict = {
   noResultsDesc: (q) => `No drawings hidden by "${q}"`,
   noRecordsTitle: "No records yet",
   noRecordsDesc: "Be the first one on the board!",
+  pagination: "Pages",
+  prevPage: "Previous page",
+  nextPage: "Next page",
 };
 
 const ja: Dict = {
@@ -534,6 +543,9 @@ const ja: Dict = {
   noResultsDesc: (q) => `"${q}" が隠した絵は見つかりませんでした`,
   noRecordsTitle: "まだ記録がありません",
   noRecordsDesc: "最初の記録の主人公になりましょう！",
+  pagination: "ページ",
+  prevPage: "前のページ",
+  nextPage: "次のページ",
 };
 
 const zh: Dict = {
@@ -669,6 +681,9 @@ const zh: Dict = {
   noResultsDesc: (q) => `没有找到 "${q}" 隐藏的画`,
   noRecordsTitle: "暂无记录",
   noRecordsDesc: "成为第一个上榜的人吧！",
+  pagination: "分页",
+  prevPage: "上一页",
+  nextPage: "下一页",
 };
 
 const es: Dict = {
@@ -804,6 +819,9 @@ const es: Dict = {
   noResultsDesc: (q) => `No hay dibujos escondidos por "${q}"`,
   noRecordsTitle: "Aún no hay registros",
   noRecordsDesc: "¡Sé el primero en la lista!",
+  pagination: "Páginas",
+  prevPage: "Página anterior",
+  nextPage: "Página siguiente",
 };
 
 const fr: Dict = {
@@ -939,6 +957,9 @@ const fr: Dict = {
   noResultsDesc: (q) => `Aucun dessin caché par « ${q} »`,
   noRecordsTitle: "Pas encore d'enregistrements",
   noRecordsDesc: "Soyez le premier au tableau !",
+  pagination: "Pages",
+  prevPage: "Page précédente",
+  nextPage: "Page suivante",
 };
 
 const de: Dict = {
@@ -1074,6 +1095,9 @@ const de: Dict = {
   noResultsDesc: (q) => `Keine Bilder von „${q}" gefunden`,
   noRecordsTitle: "Noch keine Einträge",
   noRecordsDesc: "Sei der Erste auf der Tafel!",
+  pagination: "Seiten",
+  prevPage: "Vorherige Seite",
+  nextPage: "Nächste Seite",
 };
 
 const DICTS: Record<Lang, Dict> = { ko, en, ja, zh, es, fr, de };
