@@ -1,9 +1,8 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
-import { localizedPath, type Lang } from "./locales";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 
-export type { Lang } from "./locales";
+export type Lang = "ko" | "en" | "ja" | "zh" | "es" | "fr" | "de";
 
 export interface Dict {
   // ---- 공통/네비 ----
@@ -198,7 +197,7 @@ const ko: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "위치 · 크기 · 닉네임",
-  stepDesc: "그림을 드래그해 위치를 옮기고, 사각형 모서리를 잡아 크기를 조절하세요. 캔버스는 계속 이동·확대할 수 있어요.",
+  stepDesc: "그림을 드래그해 숨길 위치를 정하고, 크기를 조절하세요. 캔버스는 계속 이동·확대할 수 있어요.",
   nickname: "닉네임",
   nicknamePlaceholder: "숨긴 사람 이름",
   size: "크기",
@@ -337,7 +336,7 @@ const en: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "Position · Size · Nickname",
-  stepDesc: "Drag your drawing to move it, and drag the corners of its frame to resize it. You can still pan and zoom the canvas.",
+  stepDesc: "Drag your drawing to choose a hiding spot and adjust its size. You can still pan and zoom the canvas.",
   nickname: "Nickname",
   nicknamePlaceholder: "Your name",
   size: "Size",
@@ -476,7 +475,7 @@ const ja: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "位置 · サイズ · ニックネーム",
-  stepDesc: "絵をドラッグして移動し、枠の角をドラッグしてサイズを調整してください。キャンバスは引き続き移動・拡大できます。",
+  stepDesc: "絵をドラッグして隠す場所を決め、サイズを調整してください。キャンバスは引き続き移動・拡大できます。",
   nickname: "ニックネーム",
   nicknamePlaceholder: "あなたの名前",
   size: "サイズ",
@@ -615,7 +614,7 @@ const zh: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "位置 · 大小 · 昵称",
-  stepDesc: "拖动画作移动位置，拖动边框的角调整大小。画布仍可移动和缩放。",
+  stepDesc: "拖动画作选择隐藏位置并调整大小。画布仍可移动和缩放。",
   nickname: "昵称",
   nicknamePlaceholder: "你的名字",
   size: "大小",
@@ -754,7 +753,7 @@ const es: Dict = {
 
   stepBadge: "PASO 2 / 2",
   stepTitle: "Posición · Tamaño · Apodo",
-  stepDesc: "Arrastra el dibujo para moverlo y las esquinas del marco para cambiar su tamaño. Puedes seguir moviendo y ampliando el lienzo.",
+  stepDesc: "Arrastra el dibujo para elegir dónde esconderlo y ajusta su tamaño. Puedes seguir moviendo y ampliando el lienzo.",
   nickname: "Apodo",
   nicknamePlaceholder: "Tu nombre",
   size: "Tamaño",
@@ -893,7 +892,7 @@ const fr: Dict = {
 
   stepBadge: "ÉTAPE 2 / 2",
   stepTitle: "Position · Taille · Pseudo",
-  stepDesc: "Faites glisser le dessin pour le déplacer et les coins du cadre pour le redimensionner. Vous pouvez toujours déplacer et zoomer la toile.",
+  stepDesc: "Faites glisser le dessin pour choisir sa cachette et ajustez sa taille. Vous pouvez toujours déplacer et zoomer la toile.",
   nickname: "Pseudo",
   nicknamePlaceholder: "Votre nom",
   size: "Taille",
@@ -1032,7 +1031,7 @@ const de: Dict = {
 
   stepBadge: "SCHRITT 2 / 2",
   stepTitle: "Position · Größe · Spitzname",
-  stepDesc: "Ziehe die Zeichnung, um sie zu verschieben, und die Ecken des Rahmens, um ihre Größe anzupassen. Die Leinwand lässt sich weiterhin bewegen und zoomen.",
+  stepDesc: "Ziehe die Zeichnung an ihr Versteck und passe die Größe an. Die Leinwand lässt sich weiterhin bewegen und zoomen.",
   nickname: "Spitzname",
   nicknamePlaceholder: "Dein Name",
   size: "Größe",
@@ -1111,20 +1110,30 @@ const de: Dict = {
 
 const DICTS: Record<Lang, Dict> = { ko, en, ja, zh, es, fr, de };
 
-const LangCtx = createContext<{ lang: Lang; t: Dict; homeHref: string; historyHref: string }>({
+/** 브라우저 언어 설정 기반 자동 감지 — 수동 선택 UI 없음 */
+function detectLang(): Lang {
+  const nav = typeof navigator !== "undefined" ? navigator.language.toLowerCase() : "ko";
+  if (nav.startsWith("ko")) return "ko";
+  if (nav.startsWith("ja")) return "ja";
+  if (nav.startsWith("zh")) return "zh";
+  if (nav.startsWith("es")) return "es";
+  if (nav.startsWith("fr")) return "fr";
+  if (nav.startsWith("de")) return "de";
+  return "en";
+}
+
+const LangCtx = createContext<{ lang: Lang; t: Dict }>({
   lang: "ko",
   t: ko,
-  homeHref: "/",
-  historyHref: "/history",
 });
 
-export function LangProvider({ children, lang = "ko" }: { children: ReactNode; lang?: Lang }) {
-  // URL이 언어를 결정한다. 서버 HTML과 첫 화면이 같아 크롤러와 사용자 모두 같은 내용을 본다.
-  return (
-    <LangCtx.Provider value={{ lang, t: DICTS[lang], homeHref: localizedPath(lang), historyHref: localizedPath(lang, "history") }}>
-      {children}
-    </LangCtx.Provider>
-  );
+export function LangProvider({ children }: { children: ReactNode }) {
+  // SSR과 첫 클라이언트 렌더의 불일치를 피하기 위해 마운트 후 감지
+  const [lang, setLang] = useState<Lang>("ko");
+  useEffect(() => {
+    setLang(detectLang());
+  }, []);
+  return <LangCtx.Provider value={{ lang, t: DICTS[lang] }}>{children}</LangCtx.Provider>;
 }
 
 export const useI18n = () => useContext(LangCtx);

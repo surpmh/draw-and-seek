@@ -1,14 +1,15 @@
 import { NextResponse, after } from "next/server";
+import sharp from "sharp";
 import { randomUUID } from "node:crypto";
 import { getServiceClient } from "@/lib/supabase";
 import { readTilesetMeta } from "@/lib/canvas-meta";
 import { recompositeTiles, tilesForBbox } from "@/lib/composite";
-import type { DrawingRow } from "@/lib/drawings-store";
-import { inspectDrawing, storeDrawing } from "@/lib/image-service";
+import { saveDrawingPng, loadDrawingRects, type DrawingRow } from "@/lib/drawings-store";
 import { MAX_LONG, MIN_TRIMMED_LONG, MIN_INK_WORLD, MIN_INK_WIDTH } from "@/lib/placement";
-import { minimumInkWidth } from "@/lib/ink-metrics";
+import { measureInk, minimumInkWidth } from "@/lib/ink-metrics";
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // 타일 재합성(Storage 왕복 다수)이 기본 제한을 넘을 수 있음
 
 /**
  * 미발견 그림 목록 — 좌표는 절대 포함하지 않는다.
@@ -45,6 +46,13 @@ interface UploadBody {
   y?: number;
   w?: number;
   h?: number;
+}
+
+/** 알파 채널 기준 실제 그림 영역(bbox)과 잉크량(불투명 픽셀 수)을 구한다 */
+async function alphaBbox(buf: Buffer) {
+  const { data, info } = await sharp(buf).toColourspace("srgb").ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const metrics = measureInk(data, info.width, info.height);
+  return metrics ? { ...metrics, imgW: info.width, imgH: info.height } : null;
 }
 
 export async function POST(req: Request) {
@@ -90,13 +98,7 @@ export async function POST(req: Request) {
   }
 
   // 투명 여백 trim → 배치 좌표 보정 (미리보기와 동일한 시각 결과 유지)
-  let bbox;
-  try {
-    bbox = await inspectDrawing(png);
-  } catch (error) {
-    console.error("drawing inspection failed:", error);
-    return new NextResponse("이미지를 확인하지 못했어요. 잠시 후 다시 시도해주세요", { status: 502 });
-  }
+  const bbox = await alphaBbox(png);
   if (!bbox) return new NextResponse("빈 그림은 숨길 수 없어요", { status: 400 });
 
   const scaleX = (w as number) / bbox.imgW;
@@ -127,13 +129,11 @@ export async function POST(req: Request) {
 
   // trim된 PNG 저장
   const id = randomUUID();
-  let imagePath: string;
-  try {
-    imagePath = await storeDrawing(id, png);
-  } catch (error) {
-    console.error("drawing storage failed:", error);
-    return new NextResponse("그림을 저장하지 못했어요. 잠시 후 다시 시도해주세요", { status: 502 });
-  }
+  const trimmed = await sharp(png)
+    .extract({ left: bbox.left, top: bbox.top, width: bbox.width, height: bbox.height })
+    .png()
+    .toBuffer();
+  const imagePath = await saveDrawingPng(id, trimmed);
 
   // DB 기록
   const { error: insErr } = await db.from("drawings").insert({
@@ -154,14 +154,13 @@ export async function POST(req: Request) {
   // 준비된 상태를 보장한다(클라이언트는 version이 바뀔 때까지 폴링).
   after(async () => {
     try {
-      const { data: unfoundRows, error: queryError } = await db
+      const { data: unfoundRows } = await db
         .from("drawings")
         .select("id, x, y, w, h, image_path")
         .is("found_at", null);
-      if (queryError) throw new Error(queryError.message);
-      await recompositeTiles(tilesForBbox(rect, meta), (unfoundRows ?? []) as DrawingRow[], meta);
-      const { error: versionError } = await db.rpc("bump_canvas_version");
-      if (versionError) throw new Error(versionError.message);
+      const unfound = await loadDrawingRects((unfoundRows ?? []) as DrawingRow[]);
+      await recompositeTiles(tilesForBbox(rect, meta), unfound, meta);
+      await db.rpc("bump_canvas_version");
     } catch (e) {
       console.error("post-upload recomposite failed:", e);
     }

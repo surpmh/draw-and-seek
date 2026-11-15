@@ -1,15 +1,10 @@
 const assert = require("node:assert/strict");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
-const { before, test } = require("node:test");
+const { test } = require("node:test");
 const vm = require("node:vm");
 const ts = require("typescript");
 const sharp = require("sharp");
-const { initializeImageEngine, inspectPng, prepareDrawing } = require("../supabase/functions/image-service/engine.ts");
-
-before(async () => {
-  await initializeImageEngine(readFileSync(require.resolve("@imagemagick/magick-wasm/magick.wasm")));
-});
 
 // Execute the real route with isolated DB/storage mocks; never upload test images.
 function loadTs(relativePath, mocks = {}) {
@@ -48,9 +43,8 @@ function createUpload() {
     "@/lib/supabase": { getServiceClient: () => ({ from: () => query }) },
     "@/lib/canvas-meta": { readTilesetMeta: async () => ({ width: 4096, height: 4096 }) },
     "@/lib/composite": {},
-    "@/lib/image-service": {
-      async inspectDrawing(png) { return inspectPng(png); },
-      async storeDrawing(id, png) { saved.push(prepareDrawing(png).png); return `${id}.png`; },
+    "@/lib/drawings-store": {
+      async saveDrawingPng(id, png) { saved.push(png); return `drawings/${id}.png`; },
     },
   });
   return {

@@ -26,26 +26,13 @@ export interface Placing {
   rotation: number;
 }
 
-/** 요청한 크기에 맞춰 정사각 한 변 재계산 */
+/** 슬라이더 값에 맞춰 정사각 한 변 재계산 */
 export function sizeFromLong(long: number): { w: number; h: number } {
   const side = Math.round(Math.min(MAX_LONG, Math.max(MIN_LONG, long)));
   return { w: side, h: side };
 }
 
 export const longSide = (p: Pick<Placing, "w" | "h">) => Math.max(p.w, p.h);
-
-export type ResizeCorner = "nw" | "ne" | "sw" | "se";
-
-/** 반대쪽 모서리를 고정하고, 캔버스 경계 안에서 정사각형 크기를 조절한다. */
-export function resizePlacement(p: Placing, long: number, corner: ResizeCorner, meta: Pick<CanvasMeta, "width" | "height">): Placing {
-  const west = corner.endsWith("w");
-  const north = corner.startsWith("n");
-  const anchorX = west ? p.x + p.w : p.x;
-  const anchorY = north ? p.y + p.h : p.y;
-  const available = Math.min(west ? anchorX : meta.width - anchorX, north ? anchorY : meta.height - anchorY);
-  const { w, h } = sizeFromLong(Math.min(long, available));
-  return { ...p, x: west ? anchorX - w : anchorX, y: north ? anchorY - h : anchorY, w, h };
-}
 
 /** 그림 전체가 캔버스 내부에 있도록 좌표를 보정 */
 export function clampToCanvas(p: Placing, meta: CanvasMeta): Placing {
