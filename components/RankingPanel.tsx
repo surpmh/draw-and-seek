@@ -17,7 +17,7 @@ export function RankingPanel({
   open: boolean;
   onToggle: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, historyHref } = useI18n();
   const badgeLabel = (ms: number) => {
     const days = Math.floor(ms / 86400_000);
     if (days >= 1) return t.badgeDays(days);
@@ -146,7 +146,7 @@ export function RankingPanel({
         )}
       </div>
       <Link
-        href="/history"
+        href={historyHref}
         style={{
           display: "flex",
           alignItems: "center",

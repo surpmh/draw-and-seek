@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useIsMobile } from "@/lib/useIsMobile";
 import { ReportModal, type ReportTarget } from "@/components/ReportModal";
 
@@ -38,7 +39,7 @@ const MEDALS = [
 ];
 
 export default function HistoryList() {
-  const { t } = useI18n();
+  const { t, homeHref } = useI18n();
   // 모바일: 포디움·타이틀 없이 검색 + 리스트만, 행은 컴팩트 레이아웃
   const isMobile = useIsMobile();
   const [data, setData] = useState<HistoryPage | null>(null);
@@ -207,7 +208,7 @@ export default function HistoryList() {
         }}
       >
         <Link
-          href="/"
+          href={homeHref}
           title={t.backToCanvas}
           style={{
             width: 32,
@@ -224,8 +225,9 @@ export default function HistoryList() {
         </Link>
         {/* 모바일은 본문 타이틀을 생략하는 대신 네비게이션 바에 제목 표기 */}
         {isMobile && (
-          <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.015em" }}>{t.historyTitle}</div>
+          <div style={{ fontSize: 14.5, fontWeight: 700, letterSpacing: "-0.015em", flex: 1, minWidth: 0 }}>{t.historyTitle}</div>
         )}
+        <div style={{ marginLeft: "auto" }}><LanguageSwitcher /></div>
       </nav>
 
       <main style={{ maxWidth: 920, margin: "0 auto", padding: isMobile ? "16px 12px 56px" : "40px 24px 80px" }}>

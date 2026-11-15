@@ -7,6 +7,7 @@ import { ColorPickerButton } from "./ColorPicker";
 import { CHECKER, PenIcon, FillIcon, EraserIcon, UndoIcon, eraserCursor } from "./DrawingPanel";
 import type { DrawingItem } from "./Sidebar";
 import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 /**
  * 모바일 전용 크롬 (시안: Hidden Canvas Mobile.dc.html)
@@ -74,7 +75,7 @@ export function MobileAppBar({ remain, onHelp }: { remain: number; onHelp: () =>
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.015em", whiteSpace: "nowrap" }}>Draw & Seek</div>
+        <h1 style={{ margin: 0, fontSize: 13.5, fontWeight: 700, letterSpacing: "-0.015em", whiteSpace: "nowrap" }}>Draw & Seek</h1>
         <div
           style={{
             fontSize: 10.5,
@@ -91,6 +92,8 @@ export function MobileAppBar({ remain, onHelp }: { remain: number; onHelp: () =>
           {t.remainCount(remain)}
         </div>
       </div>
+      <div style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+      <LanguageSwitcher />
       <button className="icon-btn" onClick={onHelp} title={t.helpButton} style={{ width: 36, height: 36, flexShrink: 0 }}>
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="10" />
@@ -98,6 +101,7 @@ export function MobileAppBar({ remain, onHelp }: { remain: number; onHelp: () =>
           <path d="M12 8h.01" />
         </svg>
       </button>
+      </div>
     </div>
   );
 }
@@ -174,7 +178,7 @@ export function MobileActionPills({
 
 /** Top 10 랭킹 바텀시트 — 숨은 그림 목록은 좌측 스트립(Sidebar compact)이 담당 */
 export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; open: boolean; onClose: () => void }) {
-  const { t } = useI18n();
+  const { t, historyHref } = useI18n();
 
   const badgeLabel = (ms: number) => {
     const days = Math.floor(ms / 86400_000);
@@ -254,7 +258,7 @@ export function MobileSheet({ items, open, onClose }: { items: DrawingItem[]; op
           )}
         </div>
         <Link
-            href="/history"
+            href={historyHref}
             style={{
               display: "flex",
               alignItems: "center",

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 
 
-export function HelpModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function HelpModal({ open, onClose, introduction }: { open: boolean; onClose: () => void; introduction: ReactNode }) {
   const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
@@ -15,17 +15,19 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
     return () => document.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  if (!open) return null;
-
   return (
     <div
+      role="dialog"
+      aria-modal={open ? true : undefined}
+      aria-label={t.helpTitle}
+      hidden={!open}
       onPointerDown={onClose}
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 90,
         background: "rgba(12, 14, 18, .4)",
-        display: "grid",
+        display: open ? "grid" : "none",
         placeItems: "center",
         padding: "max(20px, env(safe-area-inset-top)) 16px max(20px, env(safe-area-inset-bottom))",
       }}
@@ -64,6 +66,7 @@ export function HelpModal({ open, onClose }: { open: boolean; onClose: () => voi
         </div>
 
         <div style={{ overflowY: "auto", padding: "16px 20px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
+          {introduction}
           {t.helpSteps.map((s, i) => (
             <div key={i} style={{ display: "flex", gap: 12 }}>
               <div

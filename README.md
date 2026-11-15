@@ -36,6 +36,8 @@ TypeScript, Next.js 15, React 19, Supabase (PostgreSQL, Storage), sharp, Vercel
 |---|---|
 | `app/api/` | 캔버스 메타, 타일 서빙, 그림 업로드, 판정, 히스토리, 신고, 관리자 콘솔 API |
 | `app/admin-console/` | 관리자 콘솔 화면 |
+| `app/(default)/` | 한국어 게임·히스토리 및 관리자 페이지 라우트 |
+| `app/(international)/[locale]/` | 언어별 게임·히스토리 정적 페이지 |
 | `components/` | 캔버스 뷰포트, 타일 레이어, 그리기 패널, 배치 오버레이, 랭킹 패널 |
 | `lib/` | 타일 좌표 계산, 타일 합성, 스토리지, 배치, 신고, 관리자 인증 |
 | `scripts/` | 도안 생성과 타일 시드, 스토리지 동기화, DB 점검 |
@@ -61,6 +63,26 @@ npm run dev
 | `npm run seed` | 도안을 타일 피라미드로 잘라 `data/tiles/`에 저장 |
 | `npm run sync-storage` | `data/`를 Supabase Storage의 canvas 버킷으로 업로드 |
 | `npm run check-db` | Supabase 연결과 스키마 검증, canvas 행 시드 |
+
+## 언어별 검색 노출
+
+한국어는 `/`, 영어는 `/en`이며 일본어(`/ja`), 중국어(`/zh`), 스페인어(`/es`),
+프랑스어(`/fr`), 독일어(`/de`)도 지원합니다. 각 언어의 `/history` 주소에서 기록을
+확인할 수 있습니다. 상단 지구본 메뉴로 언어를 바꾸며, 브라우저 언어와 관계없이 URL의
+언어로 첫 HTML과 게임 UI를 제공합니다.
+
+언어별 제목·설명·공유 메타데이터와 canonical, hreflang, 구조화 데이터를 함께 생성합니다.
+`/sitemap.xml`에는 14개 공개 페이지와 언어별 연결이 포함됩니다.
+소개 문구는 검색엔진과 사용자에게 동일하게 제공되며 게임 도움말에서 볼 수 있습니다.
+
+개발 서버 또는 `npm run build` 후 실행한 서버를 대상으로 다음을 확인합니다.
+
+```bash
+npm run seo:check -- http://localhost:3000
+```
+
+배포 후 Search Console에서 `https://drawandseek.com/sitemap.xml`을 제출하고 `/en`의
+색인 상태를 확인합니다. 국가·검색어별 노출수, 클릭수, CTR을 기준으로 효과를 비교합니다.
 
 ## 환경변수
 
