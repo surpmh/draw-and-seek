@@ -1,5 +1,13 @@
 node_modules/
 .next/
+.open-next/
+.wrangler/
+supabase/functions/image-service/magick.wasm
+supabase/functions/image-service/node_modules/
+supabase/functions/image-service/shared/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
 out/
 data/tiles/
 data/drawings/

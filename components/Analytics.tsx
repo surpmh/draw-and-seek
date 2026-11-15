@@ -1,8 +1,7 @@
 import Script from "next/script";
-import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 
 /**
- * 방문자 분석. Vercel Analytics는 항상 켜짐(대시보드에서 Enable 필요).
+ * 방문자 분석은 배포 호스트와 무관하게 GA4를 사용한다.
  * GA4는 프로덕션 빌드에서만 로드된다(로컬 dev 방문은 집계 제외).
  * 측정 ID는 공개 값이라 코드에 둔다. NEXT_PUBLIC_GA_ID 로 덮어쓸 수 있음.
  */
@@ -12,7 +11,6 @@ export function Analytics() {
   const enabled = process.env.NODE_ENV === "production";
   return (
     <>
-      <VercelAnalytics />
       {enabled && GA_ID && (
         <>
           <Script

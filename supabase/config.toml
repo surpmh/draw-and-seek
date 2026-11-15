@@ -374,7 +374,7 @@ allow_dynamic_registration = false
 
 # Edge Function 없음
 [edge_runtime]
-enabled = false
+enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
 # `per_worker` (default) — enables hot reload during local development.
 # `oneshot` — fallback mode if hot reload causes issues (e.g. in large repos or with symlinks).
@@ -383,6 +383,11 @@ policy = "per_worker"
 inspector_port = 8083
 # The Deno major version to use.
 deno_version = 2
+
+[functions.image-service]
+# Only the server's service-role key is accepted by the handler.
+verify_jwt = false
+static_files = ["./functions/image-service/magick.wasm"]
 
 # [edge_runtime.secrets]
 # secret_key = "env(SECRET_VALUE)"

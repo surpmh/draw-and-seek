@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import sharp from "sharp";
 import { getServiceClient } from "@/lib/supabase";
-import { loadDrawingPng } from "@/lib/drawings-store";
+import { storageDownload } from "@/lib/storage";
+import { imageService } from "@/lib/image-service";
 
 export const runtime = "nodejs";
 
@@ -21,13 +21,17 @@ export async function GET(
   // 관리자 제재 그림은 id를 알아도 서빙하지 않는다
   if (!data || data.removed_at) return new NextResponse("not found", { status: 404 });
 
-  const buf = await loadDrawingPng(data.image_path);
-  if (!buf) return new NextResponse("not found", { status: 404 });
-
-  const thumb = await sharp(buf)
-    .resize(96, 96, { fit: "inside", withoutEnlargement: true })
-    .webp({ quality: 80 })
-    .toBuffer();
+  // 새 그림은 저장 시 썸네일을 만든다. 이전 그림은 최초 요청에서 생성한다.
+  let thumb: Uint8Array | null = await storageDownload(`thumbnails/${data.image_path.replace(/\.png$/, ".webp")}`);
+  if (!thumb) {
+    try {
+      const response = await imageService("thumbnail", JSON.stringify({ imagePath: data.image_path }));
+      thumb = new Uint8Array(await response.arrayBuffer());
+    } catch (error) {
+      console.error("thumbnail generation failed:", error);
+      return new NextResponse("이미지를 불러오지 못했어요", { status: 502 });
+    }
+  }
   return new NextResponse(new Uint8Array(thumb), {
     headers: {
       "Content-Type": "image/webp",

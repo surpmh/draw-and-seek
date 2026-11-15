@@ -2,13 +2,15 @@ import { getServiceClient } from "./supabase";
 
 /**
  * Supabase Storage 저장 계층 (서버 전용).
- * Vercel 등 서버리스 환경엔 영속 디스크가 없으므로 그림 PNG·타일을 전부 여기에 둔다.
+ * Workers에는 영속 디스크가 없으므로 그림 PNG·타일을 전부 여기에 둔다.
  *
  * 키 구조 (비공개 버킷 — 서빙은 항상 API 라우트를 거친다):
  *   tiles/meta.json                 타일셋 메타
  *   tiles/base/{z}/{x}/{y}.webp     원본 타일 (재합성 입력, 불변)
  *   tiles/serve/{z}/{x}/{y}.webp    서빙 타일 (base + 미발견 그림 합성)
  *   drawings/{id}.png               숨긴 그림 원본 (trim된 PNG)
+ *   thumbnails/{id}.webp            96px 썸네일
+ *   composites/{id}.png             타일 합성용 128px 그림
  */
 
 export const BUCKET = "canvas";

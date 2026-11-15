@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "drawandseek",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-11-15",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "workers_dev": true,
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "drawandseek"
+    }
+  ],
+  // 유료 바인딩이나 CPU 상향 설정 없이 Workers Free에서 운영한다.
+  "observability": { "enabled": true }
+}

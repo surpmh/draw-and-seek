@@ -2,10 +2,9 @@ import { NextResponse, after } from "next/server";
 import { getServiceClient } from "@/lib/supabase";
 import { readTilesetMeta } from "@/lib/canvas-meta";
 import { recompositeTiles, tilesForBbox } from "@/lib/composite";
-import { loadDrawingRects, type DrawingRow } from "@/lib/drawings-store";
+import type { DrawingRow } from "@/lib/drawings-store";
 
 export const runtime = "nodejs";
-export const maxDuration = 60; // 타일 재합성(Storage 왕복 다수)이 기본 제한을 넘을 수 있음
 
 /** 클릭 허용 오차 (월드 px) — 손가락/저배율 배려 */
 const TOLERANCE = 12;
@@ -30,7 +29,7 @@ export async function POST(req: Request) {
 
   const db = getServiceClient();
   const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
+    req.headers.get("cf-connecting-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "127.0.0.1";
 
   // 레이트리밋: 분당 판정 요청 수 (무차별 클릭 스캔 방지)
   const minuteAgo = new Date(Date.now() - 60_000).toISOString();
@@ -81,13 +80,14 @@ export async function POST(req: Request) {
   after(async () => {
     try {
       const meta = await readTilesetMeta();
-      const { data: unfoundRows } = await db
+      const { data: unfoundRows, error: queryError } = await db
         .from("drawings")
         .select("id, x, y, w, h, image_path")
         .is("found_at", null);
-      const unfound = await loadDrawingRects((unfoundRows ?? []) as DrawingRow[]);
-      await recompositeTiles(tilesForBbox(hit, meta), unfound, meta);
-      await db.rpc("bump_canvas_version");
+      if (queryError) throw new Error(queryError.message);
+      await recompositeTiles(tilesForBbox(hit, meta), (unfoundRows ?? []) as DrawingRow[], meta);
+      const { error: versionError } = await db.rpc("bump_canvas_version");
+      if (versionError) throw new Error(versionError.message);
     } catch (e) {
       console.error("post-find recomposite failed:", e);
     }
