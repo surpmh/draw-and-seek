@@ -24,7 +24,10 @@ export async function GET(
   }
 
   const cache = typeof caches !== "undefined" ? await caches.open("drawandseek-tiles") : null;
-  const cached = cache ? await cache.match(_req) : undefined;
+  // OpenNext의 Request는 Workers 네이티브 Request와 다를 수 있다. URL을 전달해
+  // 캐시 키에 버전을 보존하면서 런타임 간 Request 객체 변환을 피한다.
+  const cacheKey = _req.url;
+  const cached = cache ? await cache.match(cacheKey) : undefined;
   if (cached) return cached;
 
   const meta = await readTilesetMeta();
@@ -44,7 +47,7 @@ export async function GET(
   });
   if (cache) {
     const copy = response.clone();
-    after(() => cache.put(_req, copy));
+    after(() => cache.put(cacheKey, copy));
   }
   return response;
 }
