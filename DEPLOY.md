@@ -109,6 +109,17 @@ WASM 정적 파일이 포함되므로 로컬 CLI/Docker 번들링을 사용한�
 JWT 게이트웨이 검증을 끄는 대신 핸들러가 서비스 롤 키를 직접 검사한다.
 익명 키나 브라우저에서는 이 함수를 호출할 수 없다. CORS 허용도 추가하지 않는다.
 
+로그인을 완료했는데 `Access token not provided`가 나오면 저장된 인증 프로필을
+명시한다. 이 프로젝트의 `supabase` 프로필은 다음 명령으로 확인하고 배포할 수 있다.
+
+```bash
+npx supabase projects list --profile supabase
+npm run functions:deploy -- --project-ref ttbtnsieifktrckcsgky --profile supabase
+```
+
+배포가 아무 출력 없이 대기하면 `docker ps`가 응답하는지 확인한다. WASM 정적 파일은
+Docker 번들링이 필요하므로 Docker Desktop이 응답하지 않으면 먼저 복구한다.
+
 ## 2. Cloudflare Worker 배포
 
 대상 계정의 Workers 요금제가 **Free**인지 확인한다.
