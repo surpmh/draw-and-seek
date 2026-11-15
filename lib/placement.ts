@@ -6,8 +6,10 @@ export const MAX_LONG = 128;
 
 /** 업로드 검증(클라이언트 사전 검사·서버 공용): 투명 여백을 제거한 실제 그림 영역의 최소 긴 변 (월드 px) */
 export const MIN_TRIMMED_LONG = 48;
-/** 업로드 검증(클라이언트 사전 검사·서버 공용): 월드 좌표 기준 최소 잉크 면적(px²) */
-export const MIN_INK_WORLD = 30;
+/** 업로드 검증(클라이언트·서버 공용): 투명 여백을 제외한 최소 잉크 면적 (월드 px²) */
+export const MIN_INK_WORLD = 512;
+/** 기울기에 관계없이 실제 잉크 영역이 확보해야 하는 최소 폭 (월드 px) */
+export const MIN_INK_WIDTH = 24;
 /** 업로드 검증(클라이언트 사전 검사·서버 공용): 잉크로 인정하는 최소 알파 — find 히트테스트와 동일 기준 */
 export const ALPHA_VISIBLE = 32;
 
@@ -24,13 +26,26 @@ export interface Placing {
   rotation: number;
 }
 
-/** 슬라이더 값에 맞춰 정사각 한 변 재계산 */
+/** 요청한 크기에 맞춰 정사각 한 변 재계산 */
 export function sizeFromLong(long: number): { w: number; h: number } {
   const side = Math.round(Math.min(MAX_LONG, Math.max(MIN_LONG, long)));
   return { w: side, h: side };
 }
 
 export const longSide = (p: Pick<Placing, "w" | "h">) => Math.max(p.w, p.h);
+
+export type ResizeCorner = "nw" | "ne" | "sw" | "se";
+
+/** 반대쪽 모서리를 고정하고, 캔버스 경계 안에서 정사각형 크기를 조절한다. */
+export function resizePlacement(p: Placing, long: number, corner: ResizeCorner, meta: Pick<CanvasMeta, "width" | "height">): Placing {
+  const west = corner.endsWith("w");
+  const north = corner.startsWith("n");
+  const anchorX = west ? p.x + p.w : p.x;
+  const anchorY = north ? p.y + p.h : p.y;
+  const available = Math.min(west ? anchorX : meta.width - anchorX, north ? anchorY : meta.height - anchorY);
+  const { w, h } = sizeFromLong(Math.min(long, available));
+  return { ...p, x: west ? anchorX - w : anchorX, y: north ? anchorY - h : anchorY, w, h };
+}
 
 /** 그림 전체가 캔버스 내부에 있도록 좌표를 보정 */
 export function clampToCanvas(p: Placing, meta: CanvasMeta): Placing {

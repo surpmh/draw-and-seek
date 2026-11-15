@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { CanvasMeta } from "@/lib/tiles";
 import { useViewport } from "@/lib/useViewport";
 import { useDrawPad } from "@/lib/useDrawPad";
 import {
   type Placing,
+  type ResizeCorner,
   MIN_LONG,
   MAX_LONG,
-  sizeFromLong,
   clampToCanvas,
+  resizePlacement,
   MIN_INK_WORLD,
+  MIN_INK_WIDTH,
 } from "@/lib/placement";
 import { toInkSquare } from "@/lib/ink-square";
 import { getDeviceId, getLastNickname, saveNickname, isEmptyNoticeDismissed, dismissEmptyNotice } from "@/lib/device";
@@ -25,10 +27,11 @@ import { HelpModal } from "./HelpModal";
 import { MobileAppBar, MobileActionPills, MobileSheet, MobileDrawingDrawer } from "./MobileChrome";
 import { useIsMobile } from "@/lib/useIsMobile";
 import { useI18n } from "@/lib/i18n";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 
 const POLL_MS = 30_000;
 
-export default function HiddenCanvasApp() {
+export default function HiddenCanvasApp({ introduction, loadingLabel }: { introduction: ReactNode; loadingLabel: string }) {
   const { t } = useI18n();
   const tRef = useRef(t);
   tRef.current = t;
@@ -47,6 +50,18 @@ export default function HiddenCanvasApp() {
   const [panelOpen, setPanelOpen] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
   const [placing, setPlacing] = useState<Placing | null>(null);
+  // 저장 성공부터 새 타일 로딩 완료까지 원래 그림을 유지해 합성 지연을 가린다.
+  const [uploadPreviews, setUploadPreviews] = useState<{ id: string; placing: Placing; version: number }[]>([]);
+  const uploadPreviewsRef = useRef(uploadPreviews);
+  uploadPreviewsRef.current = uploadPreviews;
+  const readyTileVersion = useRef(0);
+  const onTilesReady = useCallback((version: number) => {
+    readyTileVersion.current = Math.max(readyTileVersion.current, version);
+    setUploadPreviews((previews) => {
+      const next = previews.filter((p) => p.version >= version);
+      return next.length === previews.length ? previews : next;
+    });
+  }, []);
   const [nickname, setNickname] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [drawings, setDrawings] = useState<DrawingItem[]>([]);
@@ -94,16 +109,25 @@ export default function HiddenCanvasApp() {
 
   /** 서버 상태 동기화: canvas 메타(version → 타일 무효화) + 미발견 목록. 조회된 version 반환 */
   const refreshState = useCallback(async (): Promise<number | null> => {
+    // 요청 도중 저장된 새 그림을 이전 목록 응답으로 지우지 않는다.
+    const previewIds = new Set(uploadPreviewsRef.current.map((p) => p.id));
     try {
       const [c, list] = await Promise.all([
         // version 폴링은 항상 신선해야 함 — 중간 캐시가 옛 version을 주면 갱신을 놓친다
         fetch("/api/canvas", { cache: "no-store" }).then((r) => r.json()) as Promise<CanvasMeta>,
         fetch("/api/drawings", { headers: { "x-device-id": getDeviceId() } }).then((r) =>
-          r.ok ? r.json() : [],
-        ) as Promise<DrawingItem[]>,
+          r.ok ? r.json() : null,
+        ) as Promise<DrawingItem[] | null>,
       ]);
       setMeta((prev) => (prev && prev.version === c.version ? prev : c));
-      setDrawings(list);
+      if (list) {
+        setDrawings(list);
+        const hiddenIds = new Set(list.map((d) => d.id));
+        setUploadPreviews((previews) => {
+          const next = previews.filter((p) => !previewIds.has(p.id) || hiddenIds.has(p.id));
+          return next.length === previews.length ? previews : next;
+        });
+      }
       return c.version;
     } catch (e) {
       console.error("state refresh failed:", e);
@@ -250,6 +274,10 @@ export default function HiddenCanvasApp() {
         showToast(tRef.current.tooFaint);
         return;
       }
+      if (sq.minWidth * scale + 1e-6 < MIN_INK_WIDTH) {
+        showToast(tRef.current.tooThin);
+        return;
+      }
 
       srcImgRef.current = im;
 
@@ -270,11 +298,10 @@ export default function HiddenCanvasApp() {
     setPlacing((p) => (p && metaRef.current ? clampToCanvas({ ...p, x, y }, metaRef.current) : p));
   }, []);
 
-  const onResize = useCallback((long: number) => {
+  const onResize = useCallback((long: number, corner: ResizeCorner) => {
     setPlacing((p) => {
       if (!p || !metaRef.current) return p;
-      const { w, h } = sizeFromLong(long);
-      return clampToCanvas({ ...p, w, h }, metaRef.current);
+      return resizePlacement(p, long, corner, metaRef.current);
     });
   }, []);
 
@@ -294,7 +321,7 @@ export default function HiddenCanvasApp() {
       const d = pendingDeg.current;
       const sq = toInkSquare(src, src.naturalWidth, src.naturalHeight, d);
       if (!sq) return;
-      // 프레임 크기(w·h)는 그대로 둔다 — 회전은 방향만 바꾸고, 크기는 크기 슬라이더가 정한다
+      // 프레임 크기(w·h)는 그대로 둔다 — 크기는 모서리 핸들로 조절한다
       setPlacing((p) => (p ? clampToCanvas({ ...p, img: sq.url, rotation: d }, m) : p));
     });
   }, []);
@@ -312,6 +339,7 @@ export default function HiddenCanvasApp() {
     const p = placing;
     const nick = nickname.trim();
     if (!p || !nick) return;
+    const version = metaRef.current?.version ?? 0;
     setSubmitting(true);
     try {
       const res = await fetch("/api/drawings", {
@@ -325,9 +353,12 @@ export default function HiddenCanvasApp() {
         setSubmitting(false);
         return;
       }
+      const { id } = await res.json() as { id: string };
       saveNickname(nick);
-      // 저장 완료 → 즉시 성공 피드백. 서버는 응답 후 백그라운드로 타일을 재합성하므로
-      // 목록은 바로 갱신하고, 타일 무효화(version)는 폴링으로 따라잡는다.
+      if (readyTileVersion.current <= version) {
+        setUploadPreviews((previews) => [...previews, { id, placing: p, version }]);
+      }
+      // 편집 핸들만 내리고 그림은 새 버전의 타일 로딩 완료까지 유지한다.
       setPlacing(null);
       setSubmitting(false);
       padRef.current.reset();
@@ -356,9 +387,19 @@ export default function HiddenCanvasApp() {
       }}
     >
       {meta ? (
-        <CanvasViewport meta={meta} viewport={viewport} topInset={fs || isMobile ? 0 : 56}>
+        <CanvasViewport meta={meta} viewport={viewport} topInset={fs || isMobile ? 0 : 56} onTilesReady={onTilesReady}>
+          {uploadPreviews.map(({ id, placing: p }) => (
+            <img
+              key={id}
+              data-upload-preview={id}
+              src={p.img}
+              alt=""
+              draggable={false}
+              style={{ position: "absolute", left: p.x, top: p.y, width: p.w, height: p.h, pointerEvents: "none" }}
+            />
+          ))}
           {placing && (
-            <PlacementOverlay placing={placing} scale={viewport.view.s} onMove={onMove} onRotate={onRotate} />
+            <PlacementOverlay placing={placing} scale={viewport.view.s} onMove={onMove} onRotate={onRotate} onResize={onResize} />
           )}
         </CanvasViewport>
       ) : (
@@ -372,7 +413,7 @@ export default function HiddenCanvasApp() {
             fontSize: 13,
           }}
         >
-          캔버스 불러오는 중…
+          {loadingLabel}
         </div>
       )}
 
@@ -401,7 +442,7 @@ export default function HiddenCanvasApp() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.015em" }}>Draw & Seek</div>
+          <h1 style={{ margin: 0, fontSize: 15, fontWeight: 700, letterSpacing: "-0.015em" }}>Draw & Seek</h1>
           <div
             style={{
               fontSize: 11.5,
@@ -416,6 +457,7 @@ export default function HiddenCanvasApp() {
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <LanguageSwitcher />
         <button
           className="icon-btn"
           onClick={() => setHelpOpen(true)}
@@ -433,7 +475,7 @@ export default function HiddenCanvasApp() {
       )}
 
       {/* ===== 도움말 모달 ===== */}
-      <HelpModal open={helpOpen} onClose={closeHelp} />
+      <HelpModal open={helpOpen} onClose={closeHelp} introduction={introduction} />
 
       {/* ===== 플로팅 컨트롤 (모바일: 하단 필 위로) ===== */}
       <div
@@ -551,7 +593,6 @@ export default function HiddenCanvasApp() {
           placing={placing}
           nickname={nickname}
           onNickname={setNickname}
-          onResize={onResize}
           onComplete={onCompletePlace}
           onCancel={onCancelPlace}
           submitting={submitting}

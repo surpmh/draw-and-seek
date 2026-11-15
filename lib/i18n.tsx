@@ -1,8 +1,9 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
+import { localizedPath, type Lang } from "./locales";
 
-export type Lang = "ko" | "en" | "ja" | "zh" | "es" | "fr" | "de";
+export type { Lang } from "./locales";
 
 export interface Dict {
   // ---- 공통/네비 ----
@@ -87,6 +88,7 @@ export interface Dict {
   drawFirst: string;
   tooSmall: string;
   tooFaint: string;
+  tooThin: string;
   hideSuccess: string;
   uploadFailed: (msg: string) => string;
   networkError: string;
@@ -196,7 +198,7 @@ const ko: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "위치 · 크기 · 닉네임",
-  stepDesc: "그림을 드래그해 숨길 위치를 정하고, 크기를 조절하세요. 캔버스는 계속 이동·확대할 수 있어요.",
+  stepDesc: "그림을 드래그해 위치를 옮기고, 사각형 모서리를 잡아 크기를 조절하세요. 캔버스는 계속 이동·확대할 수 있어요.",
   nickname: "닉네임",
   nicknamePlaceholder: "숨긴 사람 이름",
   size: "크기",
@@ -208,6 +210,7 @@ const ko: Dict = {
   drawFirst: "먼저 패널에 그림을 그려주세요 ✏️",
   tooSmall: "그림이 너무 작아요 — 조금만 더 크게 그려주세요",
   tooFaint: "그림이 너무 희미해요 — 좀 더 그려주세요",
+  tooThin: "그림의 폭이 너무 좁아요 — 선 대신 폭이 있는 그림을 그려주세요",
   hideSuccess: "🎉 그림을 숨겼어요! 아무도 못 찾길 바라며",
   uploadFailed: (msg) => `업로드 실패: ${msg}`,
   networkError: "네트워크 오류로 업로드에 실패했어요",
@@ -334,7 +337,7 @@ const en: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "Position · Size · Nickname",
-  stepDesc: "Drag your drawing to choose a hiding spot and adjust its size. You can still pan and zoom the canvas.",
+  stepDesc: "Drag your drawing to move it, and drag the corners of its frame to resize it. You can still pan and zoom the canvas.",
   nickname: "Nickname",
   nicknamePlaceholder: "Your name",
   size: "Size",
@@ -346,6 +349,7 @@ const en: Dict = {
   drawFirst: "Draw something on the pad first ✏️",
   tooSmall: "Too small — please draw a bit bigger",
   tooFaint: "Too faint — please draw a bit more",
+  tooThin: "Too narrow — draw a shape with more width instead of just a line",
   hideSuccess: "🎉 Hidden! Hope nobody finds it",
   uploadFailed: (msg) => `Upload failed: ${msg}`,
   networkError: "Upload failed due to a network error",
@@ -472,7 +476,7 @@ const ja: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "位置 · サイズ · ニックネーム",
-  stepDesc: "絵をドラッグして隠す場所を決め、サイズを調整してください。キャンバスは引き続き移動・拡大できます。",
+  stepDesc: "絵をドラッグして移動し、枠の角をドラッグしてサイズを調整してください。キャンバスは引き続き移動・拡大できます。",
   nickname: "ニックネーム",
   nicknamePlaceholder: "あなたの名前",
   size: "サイズ",
@@ -484,6 +488,7 @@ const ja: Dict = {
   drawFirst: "まずパッドに絵を描いてください ✏️",
   tooSmall: "絵が小さすぎます — もう少し大きく描いてください",
   tooFaint: "絵が薄すぎます — もう少し描いてください",
+  tooThin: "絵の幅が狭すぎます — 線だけでなく、幅のある絵を描いてください",
   hideSuccess: "🎉 隠しました！誰にも見つかりませんように",
   uploadFailed: (msg) => `アップロード失敗: ${msg}`,
   networkError: "ネットワークエラーでアップロードに失敗しました",
@@ -610,7 +615,7 @@ const zh: Dict = {
 
   stepBadge: "STEP 2 / 2",
   stepTitle: "位置 · 大小 · 昵称",
-  stepDesc: "拖动画作选择隐藏位置并调整大小。画布仍可移动和缩放。",
+  stepDesc: "拖动画作移动位置，拖动边框的角调整大小。画布仍可移动和缩放。",
   nickname: "昵称",
   nicknamePlaceholder: "你的名字",
   size: "大小",
@@ -622,6 +627,7 @@ const zh: Dict = {
   drawFirst: "请先在画板上画点什么 ✏️",
   tooSmall: "画太小了 — 请画大一点",
   tooFaint: "画太淡了 — 请再多画一些",
+  tooThin: "画太窄了 — 请画有一定宽度的图形，不要只画一条线",
   hideSuccess: "🎉 藏好了！希望没人找到它",
   uploadFailed: (msg) => `上传失败: ${msg}`,
   networkError: "网络错误，上传失败",
@@ -748,7 +754,7 @@ const es: Dict = {
 
   stepBadge: "PASO 2 / 2",
   stepTitle: "Posición · Tamaño · Apodo",
-  stepDesc: "Arrastra el dibujo para elegir dónde esconderlo y ajusta su tamaño. Puedes seguir moviendo y ampliando el lienzo.",
+  stepDesc: "Arrastra el dibujo para moverlo y las esquinas del marco para cambiar su tamaño. Puedes seguir moviendo y ampliando el lienzo.",
   nickname: "Apodo",
   nicknamePlaceholder: "Tu nombre",
   size: "Tamaño",
@@ -760,6 +766,7 @@ const es: Dict = {
   drawFirst: "Primero dibuja algo en el panel ✏️",
   tooSmall: "Demasiado pequeño — dibuja un poco más grande",
   tooFaint: "Demasiado tenue — dibuja un poco más",
+  tooThin: "Demasiado estrecho — dibuja una figura con más anchura, no solo una línea",
   hideSuccess: "🎉 ¡Escondido! Ojalá nadie lo encuentre",
   uploadFailed: (msg) => `Error al subir: ${msg}`,
   networkError: "Error de red al subir",
@@ -886,7 +893,7 @@ const fr: Dict = {
 
   stepBadge: "ÉTAPE 2 / 2",
   stepTitle: "Position · Taille · Pseudo",
-  stepDesc: "Faites glisser le dessin pour choisir sa cachette et ajustez sa taille. Vous pouvez toujours déplacer et zoomer la toile.",
+  stepDesc: "Faites glisser le dessin pour le déplacer et les coins du cadre pour le redimensionner. Vous pouvez toujours déplacer et zoomer la toile.",
   nickname: "Pseudo",
   nicknamePlaceholder: "Votre nom",
   size: "Taille",
@@ -898,6 +905,7 @@ const fr: Dict = {
   drawFirst: "Dessinez d'abord quelque chose ✏️",
   tooSmall: "Trop petit — dessinez un peu plus grand",
   tooFaint: "Trop pâle — dessinez un peu plus",
+  tooThin: "Trop étroit — dessinez une forme plus large plutôt qu’une simple ligne",
   hideSuccess: "🎉 Caché ! Pourvu que personne ne le trouve",
   uploadFailed: (msg) => `Échec de l'envoi : ${msg}`,
   networkError: "Échec de l'envoi (erreur réseau)",
@@ -1024,7 +1032,7 @@ const de: Dict = {
 
   stepBadge: "SCHRITT 2 / 2",
   stepTitle: "Position · Größe · Spitzname",
-  stepDesc: "Ziehe die Zeichnung an ihr Versteck und passe die Größe an. Die Leinwand lässt sich weiterhin bewegen und zoomen.",
+  stepDesc: "Ziehe die Zeichnung, um sie zu verschieben, und die Ecken des Rahmens, um ihre Größe anzupassen. Die Leinwand lässt sich weiterhin bewegen und zoomen.",
   nickname: "Spitzname",
   nicknamePlaceholder: "Dein Name",
   size: "Größe",
@@ -1036,6 +1044,7 @@ const de: Dict = {
   drawFirst: "Zeichne zuerst etwas auf dem Pad ✏️",
   tooSmall: "Zu klein — bitte etwas größer zeichnen",
   tooFaint: "Zu blass — bitte etwas mehr zeichnen",
+  tooThin: "Zu schmal — bitte eine breitere Form statt nur einer Linie zeichnen",
   hideSuccess: "🎉 Versteckt! Hoffentlich findet es niemand",
   uploadFailed: (msg) => `Upload fehlgeschlagen: ${msg}`,
   networkError: "Upload wegen Netzwerkfehler fehlgeschlagen",
@@ -1102,30 +1111,20 @@ const de: Dict = {
 
 const DICTS: Record<Lang, Dict> = { ko, en, ja, zh, es, fr, de };
 
-/** 브라우저 언어 설정 기반 자동 감지 — 수동 선택 UI 없음 */
-function detectLang(): Lang {
-  const nav = typeof navigator !== "undefined" ? navigator.language.toLowerCase() : "ko";
-  if (nav.startsWith("ko")) return "ko";
-  if (nav.startsWith("ja")) return "ja";
-  if (nav.startsWith("zh")) return "zh";
-  if (nav.startsWith("es")) return "es";
-  if (nav.startsWith("fr")) return "fr";
-  if (nav.startsWith("de")) return "de";
-  return "en";
-}
-
-const LangCtx = createContext<{ lang: Lang; t: Dict }>({
+const LangCtx = createContext<{ lang: Lang; t: Dict; homeHref: string; historyHref: string }>({
   lang: "ko",
   t: ko,
+  homeHref: "/",
+  historyHref: "/history",
 });
 
-export function LangProvider({ children }: { children: ReactNode }) {
-  // SSR과 첫 클라이언트 렌더의 불일치를 피하기 위해 마운트 후 감지
-  const [lang, setLang] = useState<Lang>("ko");
-  useEffect(() => {
-    setLang(detectLang());
-  }, []);
-  return <LangCtx.Provider value={{ lang, t: DICTS[lang] }}>{children}</LangCtx.Provider>;
+export function LangProvider({ children, lang = "ko" }: { children: ReactNode; lang?: Lang }) {
+  // URL이 언어를 결정한다. 서버 HTML과 첫 화면이 같아 크롤러와 사용자 모두 같은 내용을 본다.
+  return (
+    <LangCtx.Provider value={{ lang, t: DICTS[lang], homeHref: localizedPath(lang), historyHref: localizedPath(lang, "history") }}>
+      {children}
+    </LangCtx.Provider>
+  );
 }
 
 export const useI18n = () => useContext(LangCtx);

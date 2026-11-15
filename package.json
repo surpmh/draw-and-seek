@@ -5,7 +5,18 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "cf:build": "opennextjs-cloudflare build && node scripts/prepare-worker-env.mjs",
+    "preview": "opennextjs-cloudflare preview",
+    "deploy": "npm run cf:build && opennextjs-cloudflare deploy",
+    "cf:check": "wrangler deploy --dry-run",
+    "cf:smoke": "node --import tsx scripts/smoke-worker.mjs",
+    "functions:prepare": "node scripts/prepare-image-function.mjs",
+    "functions:check": "npm run functions:prepare && deno check --config supabase/functions/image-service/deno.json supabase/functions/image-service/index.ts",
+    "functions:serve": "npm run functions:prepare && supabase functions serve image-service",
+    "functions:deploy": "npm run functions:prepare && supabase functions deploy image-service",
     "start": "next start",
+    "test": "npm run functions:prepare && node --import tsx --test tests/*.test.cjs tests/*.test.mjs",
+    "seo:check": "node --import tsx scripts/check-seo.mjs",
     "seed": "tsx scripts/seed-tiles.ts",
     "sync-storage": "tsx scripts/sync-storage.ts",
     "stitch": "tsx scripts/stitch-grid.ts",
@@ -15,22 +26,28 @@
     "db:start": "supabase start",
     "db:stop": "supabase stop"
   },
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.0",
-    "@vercel/analytics": "^2.0.1",
     "dotenv": "^17.4.2",
-    "next": "^15.3.4",
+    "next": "^15.5.29",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "sharp": "^0.34.2"
   },
   "devDependencies": {
+    "@imagemagick/magick-wasm": "^0.0.46",
+    "@opennextjs/cloudflare": "^1.20.17",
     "@types/node": "^24.0.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "deno": "^2.9.6",
     "playwright": "^1.61.1",
     "supabase": "^2.116.0",
     "tsx": "^4.20.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "wrangler": "^4.162.0"
   }
 }

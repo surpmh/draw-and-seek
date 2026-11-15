@@ -1,4 +1,4 @@
-import { ALPHA_VISIBLE } from "./placement";
+import { measureInk, minimumInkWidth } from "./ink-metrics";
 
 /**
  * 그림을 회전한 뒤 잉크 영역만 잘라 정사각 PNG로 만든다 (브라우저 전용 — canvas 사용).
@@ -17,6 +17,8 @@ export interface InkSquare {
   side: number;
   /** 불투명 픽셀 수 — 최소 잉크량 검증용 */
   ink: number;
+  /** 회전과 무관하게 잉크 영역이 확보하는 최소 폭 (원본 px) */
+  minWidth: number;
 }
 
 /**
@@ -47,22 +49,9 @@ export function toInkSquare(
 
   // 알파 기준 잉크 영역 — 서버(app/api/drawings)와 같은 ALPHA_VISIBLE 기준을 쓴다
   const px = rc.getImageData(0, 0, rw, rh).data;
-  let ink = 0, minX = rw, minY = rh, maxX = -1, maxY = -1;
-  for (let y = 0; y < rh; y++) {
-    for (let x = 0; x < rw; x++) {
-      if (px[(y * rw + x) * 4 + 3] > ALPHA_VISIBLE) {
-        ink++;
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-  if (maxX < 0) return null; // 완전히 빈 이미지
-
-  const bw = maxX - minX + 1;
-  const bh = maxY - minY + 1;
+  const metrics = measureInk(px, rw, rh);
+  if (!metrics) return null;
+  const { left: minX, top: minY, width: bw, height: bh, ink } = metrics;
   const side = Math.max(bw, bh);
 
   const sq = document.createElement("canvas");
@@ -72,5 +61,5 @@ export function toInkSquare(
   if (!sc) return null;
   sc.drawImage(rot, minX, minY, bw, bh, Math.round((side - bw) / 2), Math.round((side - bh) / 2), bw, bh);
 
-  return { url: sq.toDataURL("image/png"), side, ink };
+  return { url: sq.toDataURL("image/png"), side, ink, minWidth: minimumInkWidth(metrics) };
 }
