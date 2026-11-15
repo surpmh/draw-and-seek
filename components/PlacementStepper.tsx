@@ -3,18 +3,16 @@
 import { useI18n } from "@/lib/i18n";
 
 import type { Placing } from "@/lib/placement";
-import { MIN_LONG, MAX_LONG, longSide } from "@/lib/placement";
 
 /**
- * 업로드 STEP 2: 닉네임 입력 + 크기 슬라이더 + 배치 완료/취소.
- * (회전은 캔버스 위 PlacementOverlay의 핸들로 한다)
+ * 업로드 STEP 2: 닉네임 입력 + 현재 크기 + 배치 완료/취소.
+ * (크기와 회전은 캔버스 위 PlacementOverlay의 핸들로 조절한다)
  * 화면 상단 고정 카드.
  */
 export function PlacementStepper({
   placing,
   nickname,
   onNickname,
-  onResize,
   onComplete,
   onCancel,
   submitting,
@@ -22,7 +20,6 @@ export function PlacementStepper({
   placing: Placing;
   nickname: string;
   onNickname: (v: string) => void;
-  onResize: (long: number) => void;
   onComplete: () => void;
   onCancel: () => void;
   submitting: boolean;
@@ -93,16 +90,8 @@ export function PlacementStepper({
       />
 
       {/* 크기 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, marginBottom: 14 }}>
         <span style={{ fontSize: 11, color: "var(--text2)", flexShrink: 0 }}>{t.size}</span>
-        <input
-          type="range"
-          min={MIN_LONG}
-          max={MAX_LONG}
-          value={longSide(placing)}
-          onChange={(e) => onResize(+e.target.value)}
-          style={{ flex: 1, accentColor: "var(--accent)", height: 22 }}
-        />
         <span style={{ fontSize: 11, color: "var(--text2)", width: 54, textAlign: "right", flexShrink: 0 }}>
           {placing.w}×{placing.h}
         </span>
