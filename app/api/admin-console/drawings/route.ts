@@ -4,7 +4,8 @@ import { isAdminRequest } from "@/lib/admin-auth";
 
 export const runtime = "nodejs";
 
-const DRAWING_COLUMNS = "id, nickname, device_id, created_at, removed_at, x, y, w, h";
+const DRAWING_COLUMNS = "id, nickname, device_id, created_at, found_at, removed_at, x, y, w, h";
+const FOUND_PAGE_SIZE = 20;
 
 /** 신고함에 한 번에 싣는 그림 수 상한 (신고 많은 순) */
 const MAX_REPORTED = 100;
@@ -14,6 +15,7 @@ interface DrawingRow {
   nickname: string;
   device_id: string;
   created_at: string;
+  found_at: string | null;
   removed_at: string | null;
   x: number;
   y: number;
@@ -27,6 +29,7 @@ const toItem = (d: DrawingRow, now: number) => ({
   deviceId: d.device_id,
   hiddenAt: d.created_at,
   hiddenMs: now - new Date(d.created_at).getTime(),
+  foundAt: d.found_at,
   removedAt: d.removed_at,
   x: d.x,
   y: d.y,
@@ -88,6 +91,7 @@ async function reportedList(db: ReturnType<typeof getServiceClient>, now: number
 /**
  * 관리자 전용 그림 목록.
  *   ?status=hidden   (기본) — 캔버스에 숨어있는 미발견 그림
+ *   ?status=found&page=1    — 발견된 그림 (최근 발견 순, 페이지 단위)
  *   ?status=removed         — 관리자가 삭제(제재)한 그림 (복구 대상)
  *   ?status=reported        — 미처리 신고가 달린 그림 (신고 수·사유 포함)
  * 공개 API와 달리 좌표·device_id까지 포함한다. 이미지 URL은 클라이언트가
@@ -96,9 +100,29 @@ async function reportedList(db: ReturnType<typeof getServiceClient>, now: number
 export async function GET(req: Request) {
   if (!isAdminRequest(req)) return new NextResponse("인증이 필요합니다", { status: 401 });
 
-  const status = new URL(req.url).searchParams.get("status") ?? "hidden";
+  const searchParams = new URL(req.url).searchParams;
+  const status = searchParams.get("status") ?? "hidden";
   const db = getServiceClient();
   const now = Date.now();
+
+  if (status === "found") {
+    const requestedPage = Number(searchParams.get("page"));
+    const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+    const offset = (page - 1) * FOUND_PAGE_SIZE;
+    const { data, count, error } = await db
+      .from("drawings")
+      .select(DRAWING_COLUMNS, { count: "exact" })
+      .not("found_at", "is", null)
+      .is("removed_at", null)
+      .order("found_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + FOUND_PAGE_SIZE - 1);
+    if (error) return new NextResponse(`DB 오류: ${error.message}`, { status: 500 });
+    return NextResponse.json(
+      { items: (data ?? []).map((d) => toItem(d as DrawingRow, now)), total: count ?? 0, page, pageSize: FOUND_PAGE_SIZE },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   if (status === "reported") {
     try {

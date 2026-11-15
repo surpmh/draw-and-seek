@@ -15,11 +15,19 @@ interface AdminDrawing {
   deviceId: string;
   hiddenAt: string;
   hiddenMs: number;
+  foundAt: string | null;
   removedAt: string | null;
   x: number;
   y: number;
   w: number;
   h: number;
+}
+
+interface FoundPage {
+  items: AdminDrawing[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /** 미처리 신고가 달린 그림 (status=reported) */
@@ -62,13 +70,13 @@ const inputStyle: React.CSSProperties = {
   outline: "none",
 };
 
-/** 우측 슬라이드 패널(신고함·삭제함) 공용 컨테이너 — 헤더 아래를 꽉 채운다 */
+/** 우측 슬라이드 패널 공용 컨테이너 — 헤더 아래를 꽉 채운다 */
 const panelStyle: React.CSSProperties = {
   position: "absolute",
   top: NAV_H,
   right: 0,
   bottom: 0,
-  width: 300,
+  width: "min(300px, 100vw)",
   zIndex: 15,
   background: "var(--surface)",
   backdropFilter: "blur(10px) saturate(1.5)",
@@ -122,11 +130,14 @@ export default function AdminApp() {
 
   const [meta, setMeta] = useState<CanvasMeta | null>(null);
   const [hidden, setHidden] = useState<AdminDrawing[] | null>(null);
+  const [found, setFound] = useState<FoundPage | null>(null);
+  const [foundError, setFoundError] = useState("");
+  const [loadingFound, setLoadingFound] = useState(false);
   const [removed, setRemoved] = useState<AdminDrawing[] | null>(null);
   const [reported, setReported] = useState<ReportedDrawing[] | null>(null);
   const [reportsError, setReportsError] = useState("");
-  // 우측 패널은 한 번에 하나만 — 신고함과 삭제함이 같은 자리를 쓴다
-  const [panel, setPanel] = useState<"reported" | "removed" | null>(null);
+  // 우측 패널은 한 번에 하나만 연다
+  const [panel, setPanel] = useState<"found" | "reported" | "removed" | null>(null);
   const [error, setError] = useState("");
   const [confirmTarget, setConfirmTarget] = useState<AdminDrawing | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -148,12 +159,13 @@ export default function AdminApp() {
   const loadAll = useCallback(async () => {
     setError("");
     try {
-      const [h, r, rep] = await Promise.all([
+      const [h, r, rep, f] = await Promise.all([
         fetch(`${apiBase}/drawings?status=hidden`, { cache: "no-store" }),
         fetch(`${apiBase}/drawings?status=removed`, { cache: "no-store" }),
         fetch(`${apiBase}/drawings?status=reported`, { cache: "no-store" }),
+        fetch(`${apiBase}/drawings?status=found`, { cache: "no-store" }),
       ]);
-      if (h.status === 401 || r.status === 401) {
+      if ([h, r, rep, f].some((response) => response.status === 401)) {
         setAuthed(false);
         return;
       }
@@ -161,6 +173,12 @@ export default function AdminApp() {
       if (!r.ok) throw new Error(await r.text());
       setHidden(await h.json());
       setRemoved(await r.json());
+      if (f.ok) {
+        setFound(await f.json());
+        setFoundError("");
+      } else {
+        setFoundError(await f.text());
+      }
       // 신고 목록은 실패해도 삭제·복구 기능까지 막지 않는다
       // (reports 테이블 마이그레이션 전이면 여기만 실패한다 — supabase/migrations/20260828160757_reports.sql)
       if (rep.ok) {
@@ -176,6 +194,25 @@ export default function AdminApp() {
       setAuthed(true); // 인증은 됐지만 목록 실패
     }
   }, [apiBase]);
+
+  const loadFoundPage = async (page: number) => {
+    if (loadingFound) return;
+    setLoadingFound(true);
+    setFoundError("");
+    try {
+      const response = await fetch(`${apiBase}/drawings?status=found&page=${page}`, { cache: "no-store" });
+      if (response.status === 401) {
+        setAuthed(false);
+        return;
+      }
+      if (!response.ok) throw new Error(await response.text());
+      setFound(await response.json());
+    } catch (e) {
+      setFoundError((e as Error).message || "목록을 불러오지 못했습니다");
+    } finally {
+      setLoadingFound(false);
+    }
+  };
 
   // 첫 진입: 세션 쿠키가 살아있는지 목록 요청으로 확인 + 캔버스 메타
   useEffect(() => {
@@ -219,6 +256,7 @@ export default function AdminApp() {
     await fetch(`${apiBase}/login`, { method: "DELETE" }).catch(() => {});
     setAuthed(false);
     setHidden(null);
+    setFound(null);
     setRemoved(null);
     setReported(null);
   };
@@ -234,14 +272,11 @@ export default function AdminApp() {
         setConfirmTarget(null);
         return;
       }
-      // 404/409 = 이미 삭제됐거나 없는 그림 — 목록에서만 제거
+      // 404/409 = 이미 삭제됐거나 없는 그림 — 서버의 최신 목록으로 맞춘다
       if (!r.ok && r.status !== 404 && r.status !== 409) throw new Error(await r.text());
       if (r.ok) applyVersion((await r.json()).version);
-      const target = confirmTarget;
-      setHidden((prev) => (prev ?? []).filter((d) => d.id !== target.id));
-      setReported((prev) => (prev ?? []).filter((d) => d.id !== target.id));
-      setRemoved((prev) => [{ ...target, removedAt: new Date().toISOString() }, ...(prev ?? [])]);
       setConfirmTarget(null);
+      await loadAll();
     } catch (e) {
       setDeleteError((e as Error).message || "삭제에 실패했습니다");
     } finally {
@@ -261,9 +296,8 @@ export default function AdminApp() {
       }
       if (!r.ok && r.status !== 409) throw new Error(await r.text());
       if (r.ok) applyVersion((await r.json()).version);
-      setRemoved((prev) => (prev ?? []).filter((it) => it.id !== d.id));
-      setReported((prev) => (prev ?? []).filter((it) => it.id !== d.id));
-      setHidden((prev) => [{ ...d, removedAt: null }, ...(prev ?? [])]);
+      // 발견된 그림은 히스토리로, 미발견 그림은 캔버스로 복구된다.
+      await loadAll();
     } catch (e) {
       setError((e as Error).message || "복구에 실패했습니다");
     } finally {
@@ -316,6 +350,8 @@ export default function AdminApp() {
           display: "flex",
           alignItems: "center",
           gap: 12,
+          overflowX: "auto",
+          whiteSpace: "nowrap",
           padding: "0 16px",
           background: "var(--surface)",
           backdropFilter: "blur(10px) saturate(1.5)",
@@ -350,6 +386,18 @@ export default function AdminApp() {
           <>
             <button onClick={loadAll} style={{ ...buttonStyle, height: 32 }}>
               새로고침
+            </button>
+            <button
+              onClick={() => setPanel((v) => (v === "found" ? null : "found"))}
+              aria-pressed={panel === "found"}
+              style={{
+                ...buttonStyle,
+                height: 32,
+                flexShrink: 0,
+                ...(panel === "found" ? { background: "var(--accent)", color: "#fff", border: "none" } : {}),
+              }}
+            >
+              찾은 그림 {found?.total ?? "…"}
             </button>
             <button
               onClick={() => setPanel((v) => (v === "reported" ? null : "reported"))}
@@ -598,6 +646,9 @@ export default function AdminApp() {
                   <div style={{ fontSize: 10.5, color: "var(--text2)", marginTop: 2 }}>
                     최근 {fmtDate(d.lastReportedAt)}
                   </div>
+                  <div style={{ fontSize: 10.5, color: "var(--text2)", marginTop: 2 }}>
+                    {d.foundAt ? "발견됨 · 히스토리에 노출 중" : "미발견 · 캔버스에 노출 중"}
+                  </div>
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
@@ -636,15 +687,24 @@ export default function AdminApp() {
         </div>
       )}
 
-      {/* 삭제된 그림 패널 (복구) */}
-      {authed && panel === "removed" && (
-        <div style={panelStyle}>
-          {removed?.length === 0 && (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--text2)", fontSize: 12.5 }}>
-              삭제된 그림이 없습니다.
+      {/* 찾은 그림은 히스토리에서 삭제, 삭제된 그림은 원래 상태로 복구 */}
+      {authed && (panel === "found" || panel === "removed") && (
+        <div style={panelStyle} aria-label={panel === "found" ? "찾은 그림 목록" : "삭제된 그림 목록"}>
+          {panel === "found" && foundError && (
+            <div role="alert" style={{ padding: 12, color: "#e5484d", fontSize: 12, wordBreak: "break-word" }}>
+              찾은 그림 목록을 불러오지 못했습니다.
+              <div style={{ marginTop: 4 }}>{foundError}</div>
+              <button onClick={() => loadFoundPage(found?.page ?? 1)} disabled={loadingFound} style={{ ...buttonStyle, marginTop: 8 }}>
+                다시 시도
+              </button>
             </div>
           )}
-          {removed?.map((d) => (
+          {((panel === "found" && !foundError && found?.items.length === 0) || (panel === "removed" && removed?.length === 0)) && (
+            <div style={{ padding: 40, textAlign: "center", color: "var(--text2)", fontSize: 12.5 }}>
+              {panel === "found" ? "찾은 그림이 없습니다." : "삭제된 그림이 없습니다."}
+            </div>
+          )}
+          {(panel === "found" ? found?.items : removed)?.map((d) => (
             <div
               key={d.id}
               style={{
@@ -670,25 +730,55 @@ export default function AdminApp() {
                   {d.nickname}
                 </div>
                 <div style={{ fontSize: 10.5, color: "var(--text2)", marginTop: 2 }}>
-                  {d.removedAt ? `${fmtDate(d.removedAt)} 삭제` : ""}
+                  {panel === "found"
+                    ? d.foundAt && `${fmtDate(d.foundAt)} 발견`
+                    : d.removedAt && `${fmtDate(d.removedAt)} 삭제`}
                 </div>
               </div>
               <button
-                onClick={() => doRestore(d)}
-                disabled={restoringId !== null}
+                onClick={() => {
+                  if (panel === "found") {
+                    setDeleteError("");
+                    setConfirmTarget(d);
+                  } else {
+                    doRestore(d);
+                  }
+                }}
+                disabled={panel === "removed" && restoringId !== null}
                 style={{
                   ...buttonStyle,
                   height: 30,
                   fontSize: 11.5,
-                  color: "var(--accent)",
+                  color: panel === "found" ? "#e5484d" : "var(--accent)",
                   opacity: restoringId && restoringId !== d.id ? 0.5 : 1,
                   flexShrink: 0,
                 }}
               >
-                {restoringId === d.id ? "복구 중…" : "복구"}
+                {panel === "found" ? "삭제" : restoringId === d.id ? "복구 중…" : "복구"}
               </button>
             </div>
           ))}
+          {panel === "found" && found && found.total > found.pageSize && (
+            <nav aria-label="찾은 그림 페이지" style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 10 }}>
+              <button
+                onClick={() => loadFoundPage(found.page - 1)}
+                disabled={loadingFound || found.page === 1}
+                style={buttonStyle}
+              >
+                이전
+              </button>
+              <span aria-live="polite" style={{ fontSize: 12 }}>
+                {found.page} / {Math.ceil(found.total / found.pageSize)}
+              </span>
+              <button
+                onClick={() => loadFoundPage(found.page + 1)}
+                disabled={loadingFound || found.page * found.pageSize >= found.total}
+                style={buttonStyle}
+              >
+                다음
+              </button>
+            </nav>
+          )}
         </div>
       )}
 
@@ -740,7 +830,7 @@ export default function AdminApp() {
             </div>
             <div style={{ fontSize: 12.5, color: "var(--text2)", lineHeight: 1.6 }}>
               <b style={{ color: "var(--text)" }}>{confirmTarget.nickname}</b>님의 그림
-              ({fmtDate(confirmTarget.hiddenAt)} 숨김)이 캔버스와 기록에서 사라집니다.
+              ({fmtDate(confirmTarget.hiddenAt)} 숨김)이 {confirmTarget.foundAt ? "히스토리에서" : "캔버스와 히스토리에서"} 사라집니다.
               실수라면 <b>삭제된 그림</b> 패널에서 언제든 복구할 수 있어요.
             </div>
             {deleteError && <div style={{ fontSize: 12, color: "#e5484d" }}>{deleteError}</div>}

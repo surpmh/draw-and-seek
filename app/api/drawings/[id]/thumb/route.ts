@@ -31,7 +31,8 @@ export async function GET(
   return new NextResponse(new Uint8Array(thumb), {
     headers: {
       "Content-Type": "image/webp",
-      "Cache-Control": "public, max-age=31536000, immutable",
+      // 삭제 여부를 매번 확인해야 하므로 공개 응답을 장기 캐시하지 않는다.
+      "Cache-Control": "no-store",
     },
   });
 }
