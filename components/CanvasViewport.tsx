@@ -11,6 +11,7 @@ export function CanvasViewport({
   cursor,
   leftInset = 0,
   topInset = 0,
+  onTilesReady,
 }: {
   meta: CanvasMeta;
   viewport: Viewport;
@@ -21,6 +22,8 @@ export function CanvasViewport({
   leftInset?: number;
   /** 탑 네비게이션에 가려지지 않도록 뷰포트 위쪽을 밀어주는 값 */
   topInset?: number;
+  /** 현재 화면에 필요한 타일이 모두 로드된 버전 */
+  onTilesReady?: (version: number) => void;
 }) {
   const { elRef, transformRef, view, size, panning, animating, onPointerDown, onDoubleClick } = viewport;
 
@@ -61,7 +64,7 @@ export function CanvasViewport({
           overflow: "hidden",
         }}
       >
-        <TileLayer view={view} size={size} meta={meta} gesturing={panning} />
+        <TileLayer view={view} size={size} meta={meta} gesturing={panning} onTilesReady={onTilesReady} />
         {children /* M2: 배치 미리보기 오버레이가 여기에 들어감 */}
       </div>
     </div>

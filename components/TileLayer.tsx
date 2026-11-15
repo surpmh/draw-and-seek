@@ -15,12 +15,14 @@ export function TileLayer({
   size,
   meta,
   gesturing = false,
+  onTilesReady,
 }: {
   view: View;
   size: ViewportSize;
   meta: CanvasMeta;
   /** 팬/핀치 진행 중 — 줌 레벨을 고정해 제스처 도중 타일 전체 교체를 막는다 */
   gesturing?: boolean;
+  onTilesReady?: (version: number) => void;
 }) {
   /** 로드 완료된 타일 키 — 이전 세트를 언제 내려도 되는지 판단 */
   const loaded = useRef<Set<string>>(new Set());
@@ -57,8 +59,11 @@ export function TileLayer({
 
   const onLoad = (k: string) => {
     loaded.current.add(k);
-    // 현재 세트가 전부 로드된 순간 한 번만 리렌더해 underlay를 내린다
-    if (underlay.length && tiles.every((t) => loaded.current.has(t.k))) bump();
+    if (tiles.every((t) => loaded.current.has(t.k))) {
+      // 버전 변경만으로는 부족하다. 실제 이미지 로딩이 끝난 뒤 업로드 미리보기를 내린다.
+      onTilesReady?.(v);
+      if (underlay.length) bump();
+    }
   };
 
   return (
